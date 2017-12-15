@@ -1,13 +1,22 @@
 package com.Jcloud.SqlParser.Common;
 
+import com.Jcloud.SqlParser.Dao.MysqlTestModelMapper;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.*;
 
 /**
  * Created by mzg on 2017/12/14.
  */
+@RunWith(SpringRunner.class)
+@SpringBootTest
 public class MysqlParserTest {
+    private MysqlTestModelMapper mysqlTestModelMapper;
     @Test
     public void mysqlSelectParser() throws Exception {
         MysqlParser mysqlParser = new MysqlParser();

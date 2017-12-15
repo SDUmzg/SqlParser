@@ -35,12 +35,12 @@
         </javaModelGenerator>
 
         <!-- sql mapper 隐射配置文件 -->
-        <sqlMapGenerator targetPackage="com.Jcloud.SqlParser.Dao"  targetProject="src\main\java">
+        <sqlMapGenerator targetPackage="com.Jcloud.SqlParser.Dao.Mapper"  targetProject="src\main\resources">
             <property name="enableSubPackages" value="true" />
         </sqlMapGenerator>
 
         <!-- 在ibatis2 中是dao层，但在mybatis3中，其实就是mapper接口 -->
-        <javaClientGenerator type="XMLMAPPER" targetPackage="com.Jcloud.SqlParser.Dao"  targetProject="src\main\java">
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.Jcloud.SqlParser.Dao"  targetProject="src\main\resources">
             <property name="enableSubPackages" value="true" />
         </javaClientGenerator>
 
