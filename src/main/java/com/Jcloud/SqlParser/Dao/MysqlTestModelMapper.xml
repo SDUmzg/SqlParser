@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.Jcloud.SqlParser.Dao.MysqlTestModelMapper">
+  <resultMap id="BaseResultMap" type="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModel">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="interface_sql" jdbcType="VARCHAR" property="interfaceSql" />
+    <result column="mysql_auto_sql" jdbcType="VARCHAR" property="mysqlAutoSql" />
+    <result column="kylin_auto_sql" jdbcType="VARCHAR" property="kylinAutoSql" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, interface_sql, mysql_auto_sql, kylin_auto_sql
+  </sql>
+  <select id="selectByExample" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModelExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from sql_parser_mysql
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from sql_parser_mysql
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModelExample">
+    delete from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModel">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into sql_parser_mysql (interface_sql, mysql_auto_sql, kylin_auto_sql
+      )
+    values (#{interfaceSql,jdbcType=VARCHAR}, #{mysqlAutoSql,jdbcType=VARCHAR}, #{kylinAutoSql,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModel">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into sql_parser_mysql
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="interfaceSql != null">
+        interface_sql,
+      </if>
+      <if test="mysqlAutoSql != null">
+        mysql_auto_sql,
+      </if>
+      <if test="kylinAutoSql != null">
+        kylin_auto_sql,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="interfaceSql != null">
+        #{interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="mysqlAutoSql != null">
+        #{mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="kylinAutoSql != null">
+        #{kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModelExample" resultType="java.lang.Long">
+    select count(*) from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update sql_parser_mysql
+    <set>
+      <if test="record.id != null">
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.interfaceSql != null">
+        interface_sql = #{record.interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="record.mysqlAutoSql != null">
+        mysql_auto_sql = #{record.mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="record.kylinAutoSql != null">
+        kylin_auto_sql = #{record.kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update sql_parser_mysql
+    set id = #{record.id,jdbcType=INTEGER},
+      interface_sql = #{record.interfaceSql,jdbcType=VARCHAR},
+      mysql_auto_sql = #{record.mysqlAutoSql,jdbcType=VARCHAR},
+      kylin_auto_sql = #{record.kylinAutoSql,jdbcType=VARCHAR}
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModel">
+    update sql_parser_mysql
+    <set>
+      <if test="interfaceSql != null">
+        interface_sql = #{interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="mysqlAutoSql != null">
+        mysql_auto_sql = #{mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="kylinAutoSql != null">
+        kylin_auto_sql = #{kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.Jcloud.SqlParser.Model.SqlModel.MysqlTestModel">
+    update sql_parser_mysql
+    set interface_sql = #{interfaceSql,jdbcType=VARCHAR},
+      mysql_auto_sql = #{mysqlAutoSql,jdbcType=VARCHAR},
+      kylin_auto_sql = #{kylinAutoSql,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <resultMap id="BaseResultMap" type="com.Jcloud.SqlParser.Model.MysqlTestModel">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="interface_sql" jdbcType="VARCHAR" property="interfaceSql" />
+    <result column="mysql_auto_sql" jdbcType="VARCHAR" property="mysqlAutoSql" />
+    <result column="kylin_auto_sql" jdbcType="VARCHAR" property="kylinAutoSql" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    id, interface_sql, mysql_auto_sql, kylin_auto_sql
+  </sql>
+  <select id="selectByExample" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModelExample" resultMap="BaseResultMap">
+    select
+    <if test="distinct">
+      distinct
+    </if>
+    <include refid="Base_Column_List" />
+    from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+    <if test="orderByClause != null">
+      order by ${orderByClause}
+    </if>
+  </select>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from sql_parser_mysql
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from sql_parser_mysql
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByExample" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModelExample">
+    delete from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </delete>
+  <insert id="insert" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModel">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into sql_parser_mysql (interface_sql, mysql_auto_sql, kylin_auto_sql
+      )
+    values (#{interfaceSql,jdbcType=VARCHAR}, #{mysqlAutoSql,jdbcType=VARCHAR}, #{kylinAutoSql,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModel">
+    <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+      SELECT LAST_INSERT_ID()
+    </selectKey>
+    insert into sql_parser_mysql
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="interfaceSql != null">
+        interface_sql,
+      </if>
+      <if test="mysqlAutoSql != null">
+        mysql_auto_sql,
+      </if>
+      <if test="kylinAutoSql != null">
+        kylin_auto_sql,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="interfaceSql != null">
+        #{interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="mysqlAutoSql != null">
+        #{mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="kylinAutoSql != null">
+        #{kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <select id="countByExample" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModelExample" resultType="java.lang.Long">
+    select count(*) from sql_parser_mysql
+    <if test="_parameter != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateByExampleSelective" parameterType="map">
+    update sql_parser_mysql
+    <set>
+      <if test="record.id != null">
+        id = #{record.id,jdbcType=INTEGER},
+      </if>
+      <if test="record.interfaceSql != null">
+        interface_sql = #{record.interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="record.mysqlAutoSql != null">
+        mysql_auto_sql = #{record.mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="record.kylinAutoSql != null">
+        kylin_auto_sql = #{record.kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByExample" parameterType="map">
+    update sql_parser_mysql
+    set id = #{record.id,jdbcType=INTEGER},
+      interface_sql = #{record.interfaceSql,jdbcType=VARCHAR},
+      mysql_auto_sql = #{record.mysqlAutoSql,jdbcType=VARCHAR},
+      kylin_auto_sql = #{record.kylinAutoSql,jdbcType=VARCHAR}
+    <if test="_parameter != null">
+      <include refid="Update_By_Example_Where_Clause" />
+    </if>
+  </update>
+  <update id="updateByPrimaryKeySelective" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModel">
+    update sql_parser_mysql
+    <set>
+      <if test="interfaceSql != null">
+        interface_sql = #{interfaceSql,jdbcType=VARCHAR},
+      </if>
+      <if test="mysqlAutoSql != null">
+        mysql_auto_sql = #{mysqlAutoSql,jdbcType=VARCHAR},
+      </if>
+      <if test="kylinAutoSql != null">
+        kylin_auto_sql = #{kylinAutoSql,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.Jcloud.SqlParser.Model.MysqlTestModel">
+    update sql_parser_mysql
+    set interface_sql = #{interfaceSql,jdbcType=VARCHAR},
+      mysql_auto_sql = #{mysqlAutoSql,jdbcType=VARCHAR},
+      kylin_auto_sql = #{kylinAutoSql,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
