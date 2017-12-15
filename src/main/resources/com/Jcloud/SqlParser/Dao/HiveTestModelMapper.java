@@ -4,7 +4,9 @@ import com.Jcloud.SqlParser.Model.SqlModel.HiveTestModel;
 import com.Jcloud.SqlParser.Model.SqlModel.HiveTestModelExample;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface HiveTestModelMapper {
     long countByExample(HiveTestModelExample example);
 
