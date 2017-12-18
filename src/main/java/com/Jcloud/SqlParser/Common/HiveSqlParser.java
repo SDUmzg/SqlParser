@@ -69,7 +69,7 @@ public class HiveSqlParser {
         String selectSql="";
         String insertTb = getTableNameByOperation(statVisitor,"Insert");
         String selectTb = getTableNameByOperation(statVisitor,"Select");
-        insertSql = "INSERT OVERWRITE TABLE pri_result.dws_itm_platform_plot_trade_d  ";
+        insertSql = "INSERT OVERWRITE TABLE  "+insertTb+" ";
         selectSql = getSelectColumnsSql(statVisitor) + getFromColumnsSql(statVisitor,appkey);
         return insertSql+selectSql;
     }
