@@ -1,10 +1,10 @@
 package com.Jcloud.SqlParser.Controller;
 
 import com.Jcloud.SqlParser.Common.HiveSqlParser;
+import com.Jcloud.SqlParser.Common.HiveSqlParserSimple;
 import com.Jcloud.SqlParser.Common.MysqlParser;
 import com.Jcloud.SqlParser.Model.SqlResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "/SqlParser")
 public class SqlParserController {
+    @Autowired
+    public HiveSqlParserSimple hiveSqlParserSimple;
     @Autowired
     public HiveSqlParser hiveSqlParser;
     @Autowired
@@ -29,14 +31,29 @@ public class SqlParserController {
      * @param tbType  是否是卖家表 1-是  2-否
      * @return
      */
-    @RequestMapping(value = "HiveSqlParser")
-    public SqlResult HiveSqlParser(@RequestParam(value = "sql")String sql,
+    @RequestMapping(value = "HiveSqlParserSimple")
+    public SqlResult HiveSqlParserSimple(@RequestParam(value = "sql")String sql,
                                    @RequestParam(value = "type")String type,
                                    @RequestParam(value = "appkey")String appkey,
                                    @RequestParam(value = "tbType")String tbType){
-        SqlResult result =  hiveSqlParser.OdpsInsertParser(sql, type, appkey, tbType);
+        SqlResult result =  hiveSqlParserSimple.OdpsInsertParser(sql, type, appkey, tbType);
         return result;
     }
+
+    /**
+     * 基本上实现复杂的Insert的语句解析
+     * @param sql     要解释的语句
+     * @param appkey   Isv的appkey
+     * @return
+     */
+    @RequestMapping(value = "HiveSqlParser")
+    public SqlResult HiveSqlParser(@RequestParam(value = "sql")String sql,
+                                   @RequestParam(value = "appkey")String appkey){
+        SqlResult result = hiveSqlParser.HiveInsertParser(sql,appkey);
+        return result;
+    }
+
+
 
     /**
      * Mysql语句添加限制，转换成Kylin格式的数据库等

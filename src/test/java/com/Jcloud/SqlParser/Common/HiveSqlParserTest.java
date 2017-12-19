@@ -9,14 +9,10 @@ import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsert;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsertStatement;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsSelectQueryBlock;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by mzg on 2017/12/13.
@@ -24,9 +20,9 @@ import static org.junit.Assert.*;
 public class HiveSqlParserTest {
     @Test
     public void odpsInsertParser() throws Exception {
-        HiveSqlParser hiveSqlParser = new HiveSqlParser();
-        SqlResult sqlResult = hiveSqlParser.OdpsInsertParser(sql4,"hive","1","1");
-        hiveSqlParser.OdpsInsertParser(sqlResult.getValue(),"hive","1","1");
+        HiveSqlParserSimple hiveSqlParserSimple = new HiveSqlParserSimple();
+        SqlResult sqlResult = hiveSqlParserSimple.OdpsInsertParser(sql4,"hive","1","1");
+        hiveSqlParserSimple.OdpsInsertParser(sqlResult.getValue(),"hive","1","1");
     }
 
     @Test
@@ -49,138 +45,195 @@ public class HiveSqlParserTest {
     @Test
     public void tempTest() throws Exception{
         String dbType = JdbcConstants.ODPS;
-        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql3, dbType);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql7, dbType);
         SQLStatement stmt = stmtList.get(0);
-        SchemaStatVisitor statVisitor = SQLUtils.createSchemaStatVisitor(dbType);
-        stmt.accept(statVisitor);
         OdpsInsertStatement odstmt = (OdpsInsertStatement)stmt;
         OdpsInsert odpsInsert = odstmt.getItems().get(0);
-        boolean isOverwrite = odpsInsert.isOverwrite();
-        SQLExprTableSource tbSource = odpsInsert.getTableSource();
         SQLSelect sqlSelect = odpsInsert.getQuery();
         OdpsSelectQueryBlock odpsSelectQueryBlock = (OdpsSelectQueryBlock) sqlSelect.getQueryBlock();
-        List<SQLAssignItem> sqlPartitions = odpsInsert.getPartitions();
-        SQLTableSource from = odpsSelectQueryBlock.getFrom();
-        setAuthOdpsSelectQueryBlock(odpsSelectQueryBlock,from,"appkey123456789");
+        getAuthOdpsSelectQueryBlock(odpsSelectQueryBlock,"appkey123456789");
+        sqlSelect.setQuery(odpsSelectQueryBlock);
+        odpsInsert.setQuery(sqlSelect);
         System.out.println(odpsSelectQueryBlock.toString());
+        System.out.println("-----------------------------");
+        System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
         System.out.println();
 
 
 
     }
 
-    public void setAuthOdpsSelectQueryBlock(OdpsSelectQueryBlock selectQueryBlock,SQLTableSource from,String appkey){
-        if (from instanceof SQLJoinTableSource){
-            SQLJoinTableSource joinTableSource = (SQLJoinTableSource) from;
-            SQLTableSource joinLeft = joinTableSource.getLeft();
-            setAuthOdpsSelectQueryBlock(selectQueryBlock,joinLeft,appkey);
-            SQLTableSource joinRight = joinTableSource.getRight();
-            setAuthOdpsSelectQueryBlock(selectQueryBlock,joinRight,appkey);
+    public void getAuthOdpsSelectQueryBlock(OdpsSelectQueryBlock odpsSelectQueryBlock,String appkey){
+        SQLTableSource from = odpsSelectQueryBlock.getFrom();
+        if (from instanceof SQLExprTableSource){
+            SQLSubqueryTableSource authSubqueryTableSource = getAuthSQLSubqueryTableSource(odpsSelectQueryBlock , appkey);
+            odpsSelectQueryBlock.setFrom(authSubqueryTableSource);
         }else if (from instanceof SQLSubqueryTableSource){
             SQLSubqueryTableSource sqlSubqueryTableSource = (SQLSubqueryTableSource) from;
             SQLSelect sqlSelect = sqlSubqueryTableSource.getSelect();
-            SQLSelectQueryBlock sqlSelectQueryBlock = sqlSelect.getQueryBlock();
-            SQLTableSource sqlTableSource = sqlSelectQueryBlock.getFrom();
-            setAuthOdpsSelectQueryBlock(selectQueryBlock,sqlTableSource,appkey);
-        }else if (from instanceof SQLExprTableSource){
-            SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) from;
-            SQLExpr sqlExpr =  sqlExprTableSource.getExpr();
-            String sqlTbName = "";
-            String sqlTbOwner = "";
-            if (sqlExpr instanceof SQLPropertyExpr){
-                SQLPropertyExpr sqlPropertyExpr = (SQLPropertyExpr) sqlExpr;
-                sqlTbName = sqlPropertyExpr.getName();
-                sqlTbOwner = sqlPropertyExpr.getOwnernName();
-            }else if (sqlExpr instanceof SQLIdentifierExpr){
-                SQLIdentifierExpr sqlIdentifierExpr = (SQLIdentifierExpr)sqlExpr;
-                sqlTbName = sqlIdentifierExpr.getName();
-            }
+            OdpsSelectQueryBlock sqlSelectQueryBlock = (OdpsSelectQueryBlock) sqlSelect.getQueryBlock();
+            getAuthOdpsSelectQueryBlock(sqlSelectQueryBlock,appkey);
+            odpsSelectQueryBlock.setFrom(sqlSelectQueryBlock,sqlSubqueryTableSource.getAlias());
+        }else if (from instanceof SQLJoinTableSource){
+            SQLJoinTableSource joinTableSource = (SQLJoinTableSource) from;
+
+            //Join -> Left
+            SQLTableSource joinLeft = joinTableSource.getLeft();
+            setJoinAuth(joinTableSource,joinLeft,"left",appkey);
+            setJoinSub(joinTableSource,joinLeft,"left",appkey);
 
 
-            //构造过滤数据权限的语句
-            OdpsSelectQueryBlock odpsSelectQueryBlock = new OdpsSelectQueryBlock();
-            //构建Select语句
-            SQLSelectItem sqlSelectItem = new SQLSelectItem();
-            SQLPropertyExpr sqlPropertyExpr1 = new SQLPropertyExpr();
-            sqlPropertyExpr1.setOwner(sqlTbName);
-            sqlPropertyExpr1.setName("*");
-            sqlSelectItem.setExpr(sqlPropertyExpr1);
+            //Join -> Right
+            SQLTableSource joinRight = joinTableSource.getRight();
+            setJoinAuth(joinTableSource,joinRight,"right",appkey);
+            setJoinSub(joinTableSource,joinRight,"right",appkey);
 
-
-            //构建From语句
-            SQLJoinTableSource fromTableSource = new SQLJoinTableSource();
-            SQLExprTableSource leftTableSource = new SQLExprTableSource();
-            SQLPropertyExpr leftPropertyExpr = getSQLPropertyExpr("jddp_isv_seller","sys");
-            leftTableSource.setExpr(leftPropertyExpr);
-            SQLExprTableSource rightTableSource = new SQLExprTableSource();
-            rightTableSource.setExpr(sqlExpr);
-            SQLJoinTableSource.JoinType joinType = SQLJoinTableSource.JoinType.JOIN;
-
-            //构建Join语句中Condition中     Condition
-            SQLBinaryOpExpr sqlBinaryOpExprRoot = new SQLBinaryOpExpr();
-
-            //构建Join语句中Condition中     Condition -> Right
-            SQLBinaryOpExpr sqlBinaryOpExprRight = new SQLBinaryOpExpr();
-            SQLPropertyExpr sqlPropertyExprRightLeft = getSQLPropertyExpr("enable_flag","jddp_isv_seller");
-            SQLCharExpr sqlCharExprRightRight = new SQLCharExpr();
-            sqlCharExprRightRight.setText("1");
-
-            //构建Join语句中Condition中     Condition -> Right  组合
-            sqlBinaryOpExprRight.setLeft(sqlPropertyExprRightLeft);
-            sqlBinaryOpExprRight.setOperator(SQLBinaryOperator.Equality);
-            sqlBinaryOpExprRight.setRight(sqlCharExprRightRight);
-
-            // 构建Join语句中Condition中     Condition -> Left
-            SQLBinaryOpExpr sqlBinaryOpExprLeft = new SQLBinaryOpExpr();
-            // Condition -> Left -> Right
-            SQLBinaryOpExpr sqlBinaryOpExprLeftRight = new SQLBinaryOpExpr();
-            SQLPropertyExpr sqlPropertyExprLeftRightLeft = getSQLPropertyExpr("appkey","jddp_isv_seller");
-            SQLCharExpr sqlCharExprLeftRightRight = new SQLCharExpr();
-            sqlCharExprLeftRightRight.setText(appkey);
-            sqlBinaryOpExprLeftRight.setLeft(sqlPropertyExprLeftRightLeft);
-            sqlBinaryOpExprLeftRight.setOperator(SQLBinaryOperator.Equality);
-            sqlBinaryOpExprLeftRight.setRight(sqlCharExprLeftRightRight);
-
-            //Condition -> Left -> Left
-            SQLBinaryOpExpr sqlBinaryOpExprLeftLeft = new SQLBinaryOpExpr();
-            SQLPropertyExpr sqlPropertyExprLeftLeftLeft = getSQLPropertyExpr("seller_id","jddp_isv_seller");
-            SQLPropertyExpr sqlPropertyExprLeftLeftRight = getSQLPropertyExpr("seller_id",sqlTbName);
-
-            //Condition -> Left -> Left 组合
-            sqlBinaryOpExprLeftLeft.setLeft(sqlPropertyExprLeftLeftLeft);
-            sqlBinaryOpExprLeftLeft.setOperator(SQLBinaryOperator.Equality);
-            sqlBinaryOpExprLeftLeft.setRight(sqlPropertyExprLeftLeftRight);
-
-
-            // 构建Join语句中Condition中     Condition -> Left  组合
-            sqlBinaryOpExprLeft.setLeft(sqlBinaryOpExprLeftLeft);
-            sqlBinaryOpExprLeft.setOperator(SQLBinaryOperator.BooleanAnd);
-            sqlBinaryOpExprLeft.setRight(sqlBinaryOpExprLeftRight);
-
-            //构建Join语句中Condition的结构
-            sqlBinaryOpExprRoot.setRight(sqlBinaryOpExprRight);
-            sqlBinaryOpExprRoot.setOperator(SQLBinaryOperator.BooleanAnd);
-            sqlBinaryOpExprRoot.setLeft(sqlBinaryOpExprLeft);
-
-            //构建Join语句的结构
-            fromTableSource.setLeft(leftTableSource);
-            fromTableSource.setRight(rightTableSource);
-            fromTableSource.setJoinType(joinType);
-            fromTableSource.setCondition(sqlBinaryOpExprRoot);
-
-
-            //构造过滤数据权限的语句
-            odpsSelectQueryBlock.addSelectItem(sqlSelectItem);
-            odpsSelectQueryBlock.setFrom(fromTableSource);
-
-            //更改from权限结构
-            selectQueryBlock.setFrom(odpsSelectQueryBlock,sqlTbName);
-
-
-
-        }else {
-            System.out.println("SQLTableSource Other Condition");
+            //设置
+            odpsSelectQueryBlock.setFrom(joinTableSource);
         }
+
+    }
+
+    public void setJoinSub(SQLJoinTableSource joinTableSource,SQLTableSource sqlTableSource,String choice,String appkey){
+        if (sqlTableSource instanceof SQLSubqueryTableSource){
+            SQLSubqueryTableSource sqlSubqueryTableSource = (SQLSubqueryTableSource) sqlTableSource;
+            SQLSelect sqlSelect = sqlSubqueryTableSource.getSelect();
+            OdpsSelectQueryBlock sqlSelectQueryBlock =(OdpsSelectQueryBlock) sqlSelect.getQueryBlock();
+            getAuthOdpsSelectQueryBlock(sqlSelectQueryBlock,appkey);
+            sqlSelect.setQuery(sqlSelectQueryBlock);
+            sqlSubqueryTableSource.setSelect(sqlSelect);
+            if (choice.equals("left")){
+                joinTableSource.setLeft(sqlSubqueryTableSource);
+            }else if (choice.equals("right")){
+                joinTableSource.setRight(sqlSubqueryTableSource);
+            }
+        }
+    }
+
+    public void setJoinAuth(SQLJoinTableSource joinTableSource,SQLTableSource sqlTableSource,String choice,String appkey){
+        if (sqlTableSource instanceof SQLExprTableSource){
+            SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) sqlTableSource;
+            SQLExpr sqlExpr = sqlExprTableSource.getExpr();
+            String sqlTbName = getName(sqlExpr);
+            SQLSubqueryTableSource sqlSubqueryTableSource = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,appkey);
+            if (choice.equals("left")){
+                joinTableSource.setLeft(sqlSubqueryTableSource);
+            }else if (choice.equals("right")){
+                joinTableSource.setRight(sqlSubqueryTableSource);
+            }
+        }
+    }
+
+    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(OdpsSelectQueryBlock odpsSelectQueryBlock1,String appkey){
+        SQLTableSource from = odpsSelectQueryBlock1.getFrom();
+        SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) from;
+        SQLExpr sqlExpr =  sqlExprTableSource.getExpr();
+        String sqlTbName = getName(sqlExpr);
+
+        SQLSubqueryTableSource result = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,appkey);
+
+        return result;
+
+    }
+
+    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(SQLExpr sqlExpr,String sqlTbName,String appkey){
+        SQLSubqueryTableSource result = new SQLSubqueryTableSource();
+        SQLSelect resultSelect = new SQLSelect();
+
+        //构造过滤数据权限的语句
+        OdpsSelectQueryBlock odpsSelectQueryBlock = new OdpsSelectQueryBlock();
+        //构建Select语句
+        SQLSelectItem sqlSelectItem = new SQLSelectItem();
+        SQLPropertyExpr sqlPropertyExpr1 = new SQLPropertyExpr();
+        sqlPropertyExpr1.setOwner(sqlTbName);
+        sqlPropertyExpr1.setName("*");
+        sqlSelectItem.setExpr(sqlPropertyExpr1);
+
+
+        //构建From语句
+        SQLJoinTableSource fromTableSource = new SQLJoinTableSource();
+        SQLExprTableSource leftTableSource = new SQLExprTableSource();
+        SQLPropertyExpr leftPropertyExpr = getSQLPropertyExpr("jddp_isv_seller","sys");
+        leftTableSource.setExpr(leftPropertyExpr);
+        SQLExprTableSource rightTableSource = new SQLExprTableSource();
+        rightTableSource.setExpr(sqlExpr);
+        SQLJoinTableSource.JoinType joinType = SQLJoinTableSource.JoinType.JOIN;
+
+        //构建Join语句中Condition中     Condition
+        SQLBinaryOpExpr sqlBinaryOpExprRoot = new SQLBinaryOpExpr();
+
+        //构建Join语句中Condition中     Condition -> Right
+        SQLBinaryOpExpr sqlBinaryOpExprRight = new SQLBinaryOpExpr();
+        SQLPropertyExpr sqlPropertyExprRightLeft = getSQLPropertyExpr("enable_flag","jddp_isv_seller");
+        SQLCharExpr sqlCharExprRightRight = new SQLCharExpr();
+        sqlCharExprRightRight.setText("1");
+
+        //构建Join语句中Condition中     Condition -> Right  组合
+        sqlBinaryOpExprRight.setLeft(sqlPropertyExprRightLeft);
+        sqlBinaryOpExprRight.setOperator(SQLBinaryOperator.Equality);
+        sqlBinaryOpExprRight.setRight(sqlCharExprRightRight);
+
+        // 构建Join语句中Condition中     Condition -> Left
+        SQLBinaryOpExpr sqlBinaryOpExprLeft = new SQLBinaryOpExpr();
+        // Condition -> Left -> Right
+        SQLBinaryOpExpr sqlBinaryOpExprLeftRight = new SQLBinaryOpExpr();
+        SQLPropertyExpr sqlPropertyExprLeftRightLeft = getSQLPropertyExpr("appkey","jddp_isv_seller");
+        SQLCharExpr sqlCharExprLeftRightRight = new SQLCharExpr();
+        sqlCharExprLeftRightRight.setText(appkey);
+        sqlBinaryOpExprLeftRight.setLeft(sqlPropertyExprLeftRightLeft);
+        sqlBinaryOpExprLeftRight.setOperator(SQLBinaryOperator.Equality);
+        sqlBinaryOpExprLeftRight.setRight(sqlCharExprLeftRightRight);
+
+        //Condition -> Left -> Left
+        SQLBinaryOpExpr sqlBinaryOpExprLeftLeft = new SQLBinaryOpExpr();
+        SQLPropertyExpr sqlPropertyExprLeftLeftLeft = getSQLPropertyExpr("seller_id","jddp_isv_seller");
+        SQLPropertyExpr sqlPropertyExprLeftLeftRight = getSQLPropertyExpr("seller_id",sqlTbName);
+
+        //Condition -> Left -> Left 组合
+        sqlBinaryOpExprLeftLeft.setLeft(sqlPropertyExprLeftLeftLeft);
+        sqlBinaryOpExprLeftLeft.setOperator(SQLBinaryOperator.Equality);
+        sqlBinaryOpExprLeftLeft.setRight(sqlPropertyExprLeftLeftRight);
+
+
+        // 构建Join语句中Condition中     Condition -> Left  组合
+        sqlBinaryOpExprLeft.setLeft(sqlBinaryOpExprLeftLeft);
+        sqlBinaryOpExprLeft.setOperator(SQLBinaryOperator.BooleanAnd);
+        sqlBinaryOpExprLeft.setRight(sqlBinaryOpExprLeftRight);
+
+        //构建Join语句中Condition的结构
+        sqlBinaryOpExprRoot.setRight(sqlBinaryOpExprRight);
+        sqlBinaryOpExprRoot.setOperator(SQLBinaryOperator.BooleanAnd);
+        sqlBinaryOpExprRoot.setLeft(sqlBinaryOpExprLeft);
+
+        //构建Join语句的结构
+        fromTableSource.setLeft(leftTableSource);
+        fromTableSource.setRight(rightTableSource);
+        fromTableSource.setJoinType(joinType);
+        fromTableSource.setCondition(sqlBinaryOpExprRoot);
+
+
+        //构造过滤数据权限的语句
+        odpsSelectQueryBlock.addSelectItem(sqlSelectItem);
+        odpsSelectQueryBlock.setFrom(fromTableSource);
+
+        resultSelect.setQuery(odpsSelectQueryBlock);
+        result.setSelect(resultSelect);
+        result.setAlias(sqlTbName);
+
+        return result;
+
+    }
+
+    public String getName(SQLExpr sqlExpr){
+        String sqlTbName = "";
+        if (sqlExpr instanceof SQLPropertyExpr){
+            SQLPropertyExpr sqlPropertyExpr = (SQLPropertyExpr) sqlExpr;
+            sqlTbName = sqlPropertyExpr.getName();
+        }else if (sqlExpr instanceof SQLIdentifierExpr){
+            SQLIdentifierExpr sqlIdentifierExpr = (SQLIdentifierExpr)sqlExpr;
+            sqlTbName = sqlIdentifierExpr.getName();
+        }
+        return sqlTbName;
     }
 
     public SQLPropertyExpr getSQLPropertyExpr(String name , String owner){
@@ -231,7 +284,7 @@ public class HiveSqlParserTest {
             "    abc.shop_id,\n" +
             "    abc.seller_id\n" +
             " FROM \n" +
-            "    (select * from dws.dws_itm_platform_plot_trade_d join dws.a ) abc  \n" +
+            "    (select * from dws.dws_itm_platform_plot_trade_d ) abc  \n" +
             " WHERE \n" +
             "    abc.dt='${date_ymd}';\n";
 
@@ -374,6 +427,31 @@ public class HiveSqlParserTest {
             "    jddp_isv_seller.seller_id = dws_itm_platform_plot_trade_d.seller_id \n" +
             "    AND jddp_isv_seller.appkey = '8E6EBC94169EA04BC6957157ABA534B0' \n" +
             "    AND jddp_isv_seller.enable_flag = '1' ";
+
+    public static final String sql6 = "INSERT OVERWRITE  TABLE   pri_result.dws_itm_platform_plot_trade_d\n" +
+            "SELECT \n" +
+            "    dws_itm_platform_plot_trade_d.*\n" +
+            "FROM \n" +
+            "    sys.jddp_isv_seller \n" +
+            "JOIN \n" +
+            "  (select * from dws_itm_platform_plot_trade_d where id = 1 )   dws_itm_platform_plot_trade_d \n" +
+            "ON \n" +
+            "    jddp_isv_seller.seller_id = dws_itm_platform_plot_trade_d.seller_id \n" +
+            "    AND jddp_isv_seller.appkey = '8E6EBC94169EA04BC6957157ABA534B0' \n" +
+            "    AND jddp_isv_seller.enable_flag = '1' ";
+
+    public static final String sql7 = "INSERT OVERWRITE  TABLE   pri_result.dws_itm_platform_plot_trade_d\n" +
+            "SELECT \n" +
+            "    dws_itm_platform_plot_trade_d.*\n" +
+            "FROM \n" +
+            "    sys.jddp_isv_seller \n" +
+            "JOIN \n" +
+            "  (Select * from (dw.jointb1 join dw.jointb2 on  jointb1.id = jointb2.id ) sdf  where id =1 )   dws_itm_platform_plot_trade_d \n" +
+            "ON \n" +
+            "    jddp_isv_seller.seller_id = dws_itm_platform_plot_trade_d.seller_id \n" +
+            "    AND jddp_isv_seller.appkey = '8E6EBC94169EA04BC6957157ABA534B0' \n" +
+            "    AND jddp_isv_seller.enable_flag = '1' ";
+
 
 
 }
