@@ -31,7 +31,7 @@ public class SqlParserController {
      * @param tbType  是否是卖家表 1-是  2-否
      * @return
      */
-    @RequestMapping(value = "HiveSqlParserSimple")
+    @RequestMapping(value = "/HiveSqlParserSimple")
     public SqlResult HiveSqlParserSimple(@RequestParam(value = "sql")String sql,
                                    @RequestParam(value = "type")String type,
                                    @RequestParam(value = "appkey")String appkey,
@@ -46,7 +46,7 @@ public class SqlParserController {
      * @param appkey   Isv的appkey
      * @return
      */
-    @RequestMapping(value = "HiveSqlParser")
+    @RequestMapping(value = "/HiveSqlParser")
     public SqlResult HiveSqlParser(@RequestParam(value = "sql")String sql,
                                    @RequestParam(value = "appkey")String appkey){
         SqlResult result = hiveSqlParser.HiveInsertParser(sql,appkey);
@@ -62,7 +62,7 @@ public class SqlParserController {
      * @param seller_id   ISV特定的ID
      * @return 返回结果
      */
-    @RequestMapping(value = "MysqlParser")
+    @RequestMapping(value = "/MysqlParser")
     public SqlResult MysqlParser(@RequestParam(value = "sql")String sql,
                                  @RequestParam(value = "TranslateTo")String TranslateTo,
                                  @RequestParam(value = "seller_id")String seller_id){

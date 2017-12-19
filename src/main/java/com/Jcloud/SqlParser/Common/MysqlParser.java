@@ -11,6 +11,8 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.util.JdbcConstants;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,7 +55,7 @@ public class MysqlParser {
         }
         String resultStr = SQLUtils.toSQLString(queryBlock,dbType);
 //        System.out.println(resultStr);
-        if (TranslateTo.equals("KYLIN")){
+        if (TranslateTo.equals("kylin")){
             resultStr =  MysqlToKylin(resultStr);
         }
         result.setStatue(true);
@@ -89,11 +91,28 @@ public class MysqlParser {
     public String MysqlToKylin(String sql){
         Pattern pattern = Pattern.compile("[\"'].*?[\"']");
         Matcher matcher = pattern.matcher(sql);
+        List<String> regResult = new ArrayList<>();
         while (matcher.find()){
-            String temp = "CAST( "+matcher.group()+" as varchar)";
-            sql = sql.replace(matcher.group(),temp);
+            boolean uniqueStr = true;
+            int size = regResult.size();
+            String str =matcher.group();
+            for (int i = 0; i<size;i++){
+                String temp = regResult.get(i);
+                if (str.equals(temp)){
+                    uniqueStr = false;
+                }
+            }
+            if (uniqueStr){
+                regResult.add(matcher.group());
+            }
         }
-        String result = SQLUtils.format(sql,JdbcConstants.KYLIN);
+        int size = regResult.size();
+        for (int i=0 ;i<size;i++){
+            String choiceStr = regResult.get(i);
+            String temp = "CAST( "+choiceStr+" as varchar)";
+            sql = sql.replace(choiceStr,temp);
+        }
+        String result = SQLUtils.format(sql,JdbcConstants.MYSQL);
         return result;
     }
 

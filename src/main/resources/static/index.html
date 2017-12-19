@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>SqlParser测试</title>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="https://cdn.bootcss.com/normalize/7.0.0/normalize.min.css" rel="stylesheet">
+    <style>
+        .center-block {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="text-left"><h3>SqlPar原始语句</h3></p>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <textarea id="sql" class="form-control" rows="15">
+
+                            </textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-md-12">
+                    <p class="text-left"><h3>SqlPar解析语句</h3></p>
+                    <div class="row">
+                        <div class="col-md-12">
+                    <textarea id="sqlparser" class="form-control" rows="15">
+
+                    </textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="height: 15px;"></div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <div class="input-group-addon">AppKey</div>
+                        <input type="text" class="form-control" id="appkey" value="appkey123456">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <div class="input-group-addon">SQL类型</div>
+                        <select id="sqlType" class="form-control">
+                            <option value="1">Hive Insert Overwrite</option>
+                            <option value="2">Mysql Select</option>
+                            <option value="3">Mysql -> Kylin</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="height: 15px;"></div>
+    <div class="row">
+        <div class="col-md-12">
+                <button id="sub"  type="button" class="btn btn-primary center-block">解析</button>
+        </div>
+    </div>
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function(){
+            $("#sub").click(function(){
+//                htmlobj=$.ajax({url:"/jquery/test1.txt",async:false});
+//                $("#sqlparser").html(htmlobj.responseText);
+                  var appkey = $("#appkey").val();
+                  var sqlType = $("#sqlType").val();
+                  var sql = $("#sql").val();
+                  if (appkey==null||appkey.trim().length==0){
+                      alert("请输入AppKey");
+                      return false;
+                  }
+                  if (sql==null||sql.trim().length==0){
+                      alert("请输入要解析的SQL语句");
+                      return false;
+                  }
+
+                  if (sqlType=="1"){
+                      var url = "/SqlParser/HiveSqlParser";
+                      var data ={
+                          sql:sql,
+                          appkey:appkey
+                      };
+                      getSqlPar(url,data);
+                  }else if (sqlType=="2"){
+                      var url = "/SqlParser/MysqlParser";
+                      var data ={
+                          sql:sql,
+                          TranslateTo:"mysql",
+                          seller_id:appkey
+                      };
+                      getSqlPar(url,data);
+                  }else if (sqlType=="3"){
+                      var url = "/SqlParser/MysqlParser";
+                      var data ={
+                          sql:sql,
+                          TranslateTo:"kylin",
+                          seller_id:appkey
+                      };
+                      getSqlPar(url,data);
+                  }
+
+            });
+        });
+
+        function getSqlPar(url,data) {
+            $.ajax({
+                method:"POST",
+                url:url,
+                data:data,
+                async: false,
+                success:function(result){
+                    $("#sqlparser").empty();
+                    var sql  = result["value"];
+                    $("#sqlparser").text(sql);
+                },
+                error:function (result) {
+                    var sql  = result["value"];
+                    $("#sqlparser").empty();
+                    $("#sqlparser").text(sql);
+                }
+            });
+        }
+
+    </script>
+</div>
+
+</body>
+</html>
