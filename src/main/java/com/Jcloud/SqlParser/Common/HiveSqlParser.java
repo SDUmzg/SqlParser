@@ -12,6 +12,7 @@ import com.alibaba.druid.sql.dialect.odps.ast.OdpsSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
 import org.springframework.stereotype.Component;
 
+import javax.xml.bind.ValidationEventLocator;
 import java.util.List;
 
 /**
@@ -34,7 +35,8 @@ public class HiveSqlParser {
             getAuthOdpsSelectQueryBlock(odpsSelectQueryBlock,appkey);
             sqlSelect.setQuery(odpsSelectQueryBlock);
             odpsInsert.setQuery(sqlSelect);
-//            System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
+            setHivePartitionn(odpsInsert);
+            System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
             result.setStatue(true);
             result.setValue(SQLUtils.toSQLString(odpsInsert,dbType));
         }catch (Exception e){
@@ -222,5 +224,33 @@ public class HiveSqlParser {
         result.setName(name);
         result.setOwner(owner);
         return result;
+    }
+
+    public void setHivePartitionn(OdpsInsert odpsInsert){
+        //先构建一个Partition
+        SQLAssignItem partition = new SQLAssignItem();
+        SQLIdentifierExpr target = new SQLIdentifierExpr();
+        target.setName("dt");
+        SQLCharExpr value = new SQLCharExpr();
+        value.setText("${date_ymd}");
+        partition.setTarget(target);
+        partition.setValue(value);
+
+        List<SQLAssignItem> sqlAssignItemList = odpsInsert.getPartitions();
+        int size = sqlAssignItemList.size();
+        if (size==0){
+            odpsInsert.addPartition(partition);
+        }else {
+            for(int i=0;i<size;i++){
+                SQLAssignItem sqlAssignItem = sqlAssignItemList.get(i);
+                String targetTemp = sqlAssignItem.getTarget().toString();
+                String valueTemp = sqlAssignItem.getValue().toString();
+                if (targetTemp.equals("dt")&&valueTemp.equals("'${date_ymd}'")){
+                    return;
+                }
+            }
+            sqlAssignItemList.add(partition);
+            odpsInsert.setPartitions(sqlAssignItemList);
+        }
     }
 }

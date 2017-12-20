@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsertStatement;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class HiveSqlParserTest {
     @Test
     public void tempTest() throws Exception{
         String dbType = JdbcConstants.ODPS;
-        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql7, dbType);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
         SQLStatement stmt = stmtList.get(0);
         OdpsInsertStatement odstmt = (OdpsInsertStatement)stmt;
         OdpsInsert odpsInsert = odstmt.getItems().get(0);
@@ -54,6 +55,7 @@ public class HiveSqlParserTest {
         getAuthOdpsSelectQueryBlock(odpsSelectQueryBlock,"appkey123456789");
         sqlSelect.setQuery(odpsSelectQueryBlock);
         odpsInsert.setQuery(sqlSelect);
+        setHivePartitionn(odpsInsert);
         System.out.println(odpsSelectQueryBlock.toString());
         System.out.println("-----------------------------");
         System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
@@ -61,6 +63,11 @@ public class HiveSqlParserTest {
 
 
 
+    }
+    @Test
+    public void temp1Test()throws Exception{
+        HiveSqlParser hiveSqlParser = new HiveSqlParser();
+        hiveSqlParser.HiveInsertParser(sql,"appkey132456456");
     }
 
     public void getAuthOdpsSelectQueryBlock(OdpsSelectQueryBlock odpsSelectQueryBlock,String appkey){
@@ -243,6 +250,33 @@ public class HiveSqlParserTest {
         return result;
     }
 
+    public void setHivePartitionn(OdpsInsert odpsInsert){
+        //先构建一个Partition
+        SQLAssignItem partition = new SQLAssignItem();
+        SQLIdentifierExpr target = new SQLIdentifierExpr();
+        target.setName("dt");
+        SQLCharExpr value = new SQLCharExpr();
+        value.setText("${date_ymd}");
+        partition.setTarget(target);
+        partition.setValue(value);
+
+        List<SQLAssignItem> sqlAssignItemList = odpsInsert.getPartitions();
+        int size = sqlAssignItemList.size();
+        if (size==0){
+            odpsInsert.addPartition(partition);
+        }else {
+            for(int i=0;i<size;i++){
+                SQLAssignItem sqlAssignItem = sqlAssignItemList.get(i);
+                String targetTemp = sqlAssignItem.getTarget().toString();
+                String valueTemp = sqlAssignItem.getValue().toString();
+                if (targetTemp.equals("dt")&&valueTemp.equals("'${date_ymd}'")){
+                    return;
+                }
+            }
+            sqlAssignItemList.add(partition);
+            odpsInsert.setPartitions(sqlAssignItemList);
+        }
+    }
 
 
 
@@ -254,7 +288,8 @@ public class HiveSqlParserTest {
 
 
 
-    public static final String sql=" INSERT OVERWRITE  TABLE   pri_result.dws_itm_platform_plot_trade_d \n" +
+
+    public static final String sql=" INSERT OVERWRITE  TABLE   pri_result.dws_itm_platform_plot_trade_d  \n" +
             " SELECT \n" +
             "    * \n" +
             " FROM \n" +
