@@ -1,6 +1,8 @@
 package com.Jcloud.SqlParser.Common;
 
 import com.Jcloud.SqlParser.Model.SqlResult;
+import com.Jcloud.SqlParser.Service.SellerService;
+import com.Jcloud.SqlParser.SqlParserApplication;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -11,14 +13,22 @@ import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsertStatement;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.List;
 
 /**
  * Created by mzg on 2017/12/13.
  */
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(classes = SqlParserApplication.class)
 public class HiveSqlParserTest {
+
+    @Autowired
+    private SellerService sellerService;
     @Test
     public void odpsInsertParser() throws Exception {
         HiveSqlParserSimple hiveSqlParserSimple = new HiveSqlParserSimple();
@@ -67,8 +77,28 @@ public class HiveSqlParserTest {
     @Test
     public void temp1Test()throws Exception{
         HiveSqlParser hiveSqlParser = new HiveSqlParser();
-        hiveSqlParser.HiveInsertParser(sql,"appkey132456456");
+        hiveSqlParser.HiveInsertParser(sql6,"appkey132456456");
     }
+
+    @Test
+    public void temp2Test()throws Exception{
+        //dws.dws_seller_shop_platform_trade_h
+        SQLPropertyExpr sqlPropertyExpr = getSQLPropertyExpr("dws_seller_shop_platform_trade_h","dws");
+        System.err.println(sqlPropertyExpr.toString());
+        long a = sellerService.countByTbName(sqlPropertyExpr.toString());
+        System.err.println(a);
+
+    }
+
+    @Test
+    public void temp3Test()throws Exception{
+        HiveSqlParser hiveSqlParser = new HiveSqlParser();
+        SQLPropertyExpr sqlPropertyExpr = getSQLPropertyExpr("dws_seller_shop_platform_trade_h","dws1");
+        System.err.println(sqlPropertyExpr.toString());
+        System.err.println(hiveSqlParser.isSellerTb(sqlPropertyExpr));
+
+    }
+
 
     public void getAuthOdpsSelectQueryBlock(OdpsSelectQueryBlock odpsSelectQueryBlock,String appkey){
         SQLTableSource from = odpsSelectQueryBlock.getFrom();
@@ -278,6 +308,16 @@ public class HiveSqlParserTest {
         }
     }
 
+    //判断是否是卖家表
+    public boolean isSellerTb(SQLPropertyExpr sqlPropertyExpr){
+        boolean result = true;
+        String targetTb = sqlPropertyExpr.toString();
+        long count = sellerService.countByTbName(targetTb);
+        if (count!=0){
+            result = false;
+        }
+        return result;
+    }
 
 
 
@@ -293,7 +333,7 @@ public class HiveSqlParserTest {
             " SELECT \n" +
             "    * \n" +
             " FROM \n" +
-            "    dws.dws_itm_platform_plot_trade_d   \n" +
+            "    dws.dws_seller_shop_platform_trade_h  aaaaa   \n" +
             "\n" +
             " WHERE \n" +
             "    dt='${date_ymd}';\n";
@@ -319,7 +359,7 @@ public class HiveSqlParserTest {
             "    abc.shop_id,\n" +
             "    abc.seller_id\n" +
             " FROM \n" +
-            "    (select * from dws.dws_itm_platform_plot_trade_d ) abc  \n" +
+            "    (select * from dws.dws_itm_platform_plot_trade_d1 ) abc  \n" +
             " WHERE \n" +
             "    abc.dt='${date_ymd}';\n";
 
@@ -467,9 +507,9 @@ public class HiveSqlParserTest {
             "SELECT \n" +
             "    dws_itm_platform_plot_trade_d.*\n" +
             "FROM \n" +
-            "    sys.jddp_isv_seller \n" +
+            "    dws.dws_seller_shop_buyer_habit_d   aaaaa \n" +
             "JOIN \n" +
-            "  (select * from dws_itm_platform_plot_trade_d where id = 1 )   dws_itm_platform_plot_trade_d \n" +
+            "  (select * from dws.dws_itm_platform_plot_trade_d where id = '1' ) dws_itm_platform_plot_trade_d \n" +
             "ON \n" +
             "    jddp_isv_seller.seller_id = dws_itm_platform_plot_trade_d.seller_id \n" +
             "    AND jddp_isv_seller.appkey = '8E6EBC94169EA04BC6957157ABA534B0' \n" +

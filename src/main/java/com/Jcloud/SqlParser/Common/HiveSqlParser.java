@@ -1,6 +1,7 @@
 package com.Jcloud.SqlParser.Common;
 
 import com.Jcloud.SqlParser.Model.SqlResult;
+import com.Jcloud.SqlParser.Service.SellerService;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -10,8 +11,11 @@ import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsert;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsInsertStatement;
 import com.alibaba.druid.sql.dialect.odps.ast.OdpsSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.xml.bind.ValidationEventLocator;
 import java.util.List;
 
@@ -20,6 +24,15 @@ import java.util.List;
  */
 @Component
 public class HiveSqlParser {
+    @Autowired
+    private SellerService sellerService;
+    private static HiveSqlParser hiveSqlParser;
+
+    @PostConstruct
+    public void init(){
+        hiveSqlParser = this;
+        hiveSqlParser.sellerService = this.sellerService;
+    }
 
     public final String dbType = JdbcConstants.ODPS;
 
@@ -49,8 +62,12 @@ public class HiveSqlParser {
     public void getAuthOdpsSelectQueryBlock(OdpsSelectQueryBlock odpsSelectQueryBlock, String appkey){
         SQLTableSource from = odpsSelectQueryBlock.getFrom();
         if (from instanceof SQLExprTableSource){
-            SQLSubqueryTableSource authSubqueryTableSource = getAuthSQLSubqueryTableSource(odpsSelectQueryBlock , appkey);
-            odpsSelectQueryBlock.setFrom(authSubqueryTableSource);
+            SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) from;
+            SQLPropertyExpr sqlPropertyExpr = (SQLPropertyExpr) sqlExprTableSource.getExpr();
+            if (isSellerTb(sqlPropertyExpr)){
+                SQLSubqueryTableSource authSubqueryTableSource = getAuthSQLSubqueryTableSource(odpsSelectQueryBlock , appkey);
+                odpsSelectQueryBlock.setFrom(authSubqueryTableSource);
+            }
         }else if (from instanceof SQLSubqueryTableSource){
             SQLSubqueryTableSource sqlSubqueryTableSource = (SQLSubqueryTableSource) from;
             SQLSelect sqlSelect = sqlSubqueryTableSource.getSelect();
@@ -77,6 +94,7 @@ public class HiveSqlParser {
 
     }
 
+    // Join 语句下面还有 比如  select * from tab1  或者   tab1 join tab2 on ...  子语句
     public void setJoinSub(SQLJoinTableSource joinTableSource,SQLTableSource sqlTableSource,String choice,String appkey){
         if (sqlTableSource instanceof SQLSubqueryTableSource){
             SQLSubqueryTableSource sqlSubqueryTableSource = (SQLSubqueryTableSource) sqlTableSource;
@@ -93,33 +111,45 @@ public class HiveSqlParser {
         }
     }
 
+    //Join的左右子树中没有其他语句，from tab1 ，这种形式的限权管理
     public void setJoinAuth(SQLJoinTableSource joinTableSource,SQLTableSource sqlTableSource,String choice,String appkey){
         if (sqlTableSource instanceof SQLExprTableSource){
             SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) sqlTableSource;
             SQLExpr sqlExpr = sqlExprTableSource.getExpr();
-            String sqlTbName = getName(sqlExpr);
-            SQLSubqueryTableSource sqlSubqueryTableSource = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,appkey);
-            if (choice.equals("left")){
-                joinTableSource.setLeft(sqlSubqueryTableSource);
-            }else if (choice.equals("right")){
-                joinTableSource.setRight(sqlSubqueryTableSource);
+            SQLPropertyExpr sqlPropertyExpr = (SQLPropertyExpr) sqlExpr;
+            if (isSellerTb(sqlPropertyExpr)){
+                String sqlTbName = getName(sqlExpr);
+                String alias = sqlExprTableSource.getAlias();
+                if (alias==null){
+                    alias = sqlTbName ;
+                }
+                SQLSubqueryTableSource sqlSubqueryTableSource = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,alias,appkey);
+                if (choice.equals("left")){
+                    joinTableSource.setLeft(sqlSubqueryTableSource);
+                }else if (choice.equals("right")){
+                    joinTableSource.setRight(sqlSubqueryTableSource);
+                }
             }
         }
     }
 
-    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(OdpsSelectQueryBlock odpsSelectQueryBlock1,String appkey){
-        SQLTableSource from = odpsSelectQueryBlock1.getFrom();
+    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(OdpsSelectQueryBlock odpsSelectQueryBlock,String appkey){
+        SQLTableSource from = odpsSelectQueryBlock.getFrom();
         SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) from;
         SQLExpr sqlExpr =  sqlExprTableSource.getExpr();
         String sqlTbName = getName(sqlExpr);
+        String alias = sqlExprTableSource.getAlias();
+        if (alias==null){
+            alias = sqlTbName;
+        }
 
-        SQLSubqueryTableSource result = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,appkey);
+        SQLSubqueryTableSource result = getAuthSQLSubqueryTableSource(sqlExpr,sqlTbName,alias,appkey);
 
         return result;
 
     }
 
-    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(SQLExpr sqlExpr,String sqlTbName,String appkey){
+    public SQLSubqueryTableSource getAuthSQLSubqueryTableSource(SQLExpr sqlExpr,String sqlTbName,String alias,String appkey){
         SQLSubqueryTableSource result = new SQLSubqueryTableSource();
         SQLSelect resultSelect = new SQLSelect();
 
@@ -201,12 +231,13 @@ public class HiveSqlParser {
 
         resultSelect.setQuery(odpsSelectQueryBlock);
         result.setSelect(resultSelect);
-        result.setAlias(sqlTbName);
+        result.setAlias(alias);
 
         return result;
 
     }
 
+    //在 from dws.abc  类似的语句中  ，获取表名 abc
     public String getName(SQLExpr sqlExpr){
         String sqlTbName = "";
         if (sqlExpr instanceof SQLPropertyExpr){
@@ -219,6 +250,7 @@ public class HiveSqlParser {
         return sqlTbName;
     }
 
+    //构造 tab.a  类似结构
     public SQLPropertyExpr getSQLPropertyExpr(String name , String owner){
         SQLPropertyExpr result = new SQLPropertyExpr();
         result.setName(name);
@@ -226,6 +258,7 @@ public class HiveSqlParser {
         return result;
     }
 
+    //对Partition的处理
     public void setHivePartitionn(OdpsInsert odpsInsert){
         //先构建一个Partition
         SQLAssignItem partition = new SQLAssignItem();
@@ -252,5 +285,16 @@ public class HiveSqlParser {
             sqlAssignItemList.add(partition);
             odpsInsert.setPartitions(sqlAssignItemList);
         }
+    }
+
+    //判断是否是卖家表
+    public boolean isSellerTb(SQLPropertyExpr sqlPropertyExpr){
+        boolean result = false;
+        String targetTb = sqlPropertyExpr.toString();
+        long count = hiveSqlParser.sellerService.countByTbName(targetTb);
+        if (count>0){
+            result = true;
+        }
+        return result;
     }
 }

@@ -1,5 +1,6 @@
 package com.Jcloud.SqlParser.Service.Impl;
 
+import com.Jcloud.SqlParser.Model.ResultModel;
 import com.Jcloud.SqlParser.Model.SqlModel.SellerModel;
 import com.Jcloud.SqlParser.Service.SellerService;
 import com.Jcloud.SqlParser.SqlParserApplication;
@@ -30,7 +31,14 @@ public class SellerServiceImplTest {
     @Test
     public void insertSeller() throws Exception {
         SellerModel sellerModel = new SellerModel();
-        sellerModel.setName("ok");
+        sellerModel.setName("3");
+        ResultModel status = sellerService.insertSeller(sellerModel);
+        System.out.println(status.getValue());
+    }
+
+    @Test
+    public void countByTbName() throws Exception{
+        System.out.println(sellerService.countByTbName("dws.dws_itm_trade_d   "));
     }
 
 }

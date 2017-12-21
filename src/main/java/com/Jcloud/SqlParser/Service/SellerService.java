@@ -8,4 +8,6 @@ import com.Jcloud.SqlParser.Model.SqlModel.SellerModel;
  */
 public interface SellerService {
     public ResultModel insertSeller(SellerModel sellerModel);
+
+    public long countByTbName(String tbName);
 }
