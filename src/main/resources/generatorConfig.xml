@@ -35,12 +35,12 @@
         </javaModelGenerator>
 
         <!-- sql mapper 隐射配置文件 -->
-        <sqlMapGenerator targetPackage="com.Jcloud.SqlParser.Dao.Mapper"  targetProject="src\main\resources">
+        <sqlMapGenerator targetPackage="Mappers"  targetProject="src\main\resources">
             <property name="enableSubPackages" value="true" />
         </sqlMapGenerator>
 
         <!-- 在ibatis2 中是dao层，但在mybatis3中，其实就是mapper接口 -->
-        <javaClientGenerator type="XMLMAPPER" targetPackage="com.Jcloud.SqlParser.Dao"  targetProject="src\main\resources">
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.Jcloud.SqlParser.Dao"  targetProject="src\main\java">
             <property name="enableSubPackages" value="true" />
         </javaClientGenerator>
 
@@ -52,6 +52,11 @@
         <table  tableName="sql_parser_hive" domainObjectName="HiveTestModel">
                 <property name="useActualColumnNames" value="false"/>
                 <generatedKey column="id" sqlStatement="MYSQL" identity="true"/>
+        </table>
+
+        <table  tableName="seller" domainObjectName="SellerModel">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="id" sqlStatement="MYSQL" identity="true"/>
         </table>
 
     </context>

@@ -3,10 +3,11 @@ package com.Jcloud.SqlParser.Dao;
 import com.Jcloud.SqlParser.Model.SqlModel.HiveTestModel;
 import com.Jcloud.SqlParser.Model.SqlModel.HiveTestModelExample;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
 public interface HiveTestModelMapper {
     long countByExample(HiveTestModelExample example);
 

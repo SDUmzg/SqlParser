@@ -98,7 +98,6 @@
                       alert("请输入要解析的SQL语句");
                       return false;
                   }
-
                   if (sqlType=="1"){
                       var url = "/SqlParser/HiveSqlParser";
                       var data ={
@@ -132,16 +131,16 @@
                 method:"POST",
                 url:url,
                 data:data,
-                async: false,
+                async: true,
                 success:function(result){
                     $("#sqlparser").empty();
                     var sql  = result["value"];
-                    $("#sqlparser").text(sql);
+                    $("#sqlparser").val(sql);
                 },
                 error:function (result) {
-                    var sql  = result["value"];
                     $("#sqlparser").empty();
-                    $("#sqlparser").text(sql);
+                    var sql  = result["value"];
+                    $("#sqlparser").val(sql);
                 }
             });
         }
