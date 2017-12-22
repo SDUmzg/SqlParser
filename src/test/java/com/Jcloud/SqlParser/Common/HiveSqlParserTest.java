@@ -76,8 +76,28 @@ public class HiveSqlParserTest {
     }
     @Test
     public void temp1Test()throws Exception{
-        HiveSqlParser hiveSqlParser = new HiveSqlParser();
-        hiveSqlParser.HiveInsertParser(sql6,"appkey132456456");
+//        HiveSqlParser hiveSqlParser = new HiveSqlParser();
+//        hiveSqlParser.HiveInsertParser(sql8,"appkey132456456");
+        System.err.println(preFormat(sql8));
+    }
+
+    public String preFormat(String sql){
+        String result = sql.trim();
+        result = result.replace("from","FROM");
+        result = result.replace("insert","INSERT");
+        result = result.replace("where","WHERE");
+        int fromNum = result.indexOf("FROM");
+        int insertNum = result.indexOf("INSERT");
+        if (insertNum>fromNum){
+            String tempSql = result.substring(insertNum,result.length()-1);
+            String tempFrom = result.substring(0,insertNum);
+            int whereNum = tempSql.indexOf("WHERE");
+            StringBuffer stringBuffer = new StringBuffer(tempSql);
+            stringBuffer.insert(whereNum,tempFrom);
+            result = stringBuffer.toString();
+            return result;
+        }
+        return result;
     }
 
     @Test
@@ -526,6 +546,8 @@ public class HiveSqlParserTest {
             "    jddp_isv_seller.seller_id = dws_itm_platform_plot_trade_d.seller_id \n" +
             "    AND jddp_isv_seller.appkey = '8E6EBC94169EA04BC6957157ABA534B0' \n" +
             "    AND jddp_isv_seller.enable_flag = '1' ";
+
+    public static final String sql8 ="from pri_upload.tdy001 insert overwrite table pri_result.tdy001  select name,age where dt = '${date_ymd}'";
 
 
 

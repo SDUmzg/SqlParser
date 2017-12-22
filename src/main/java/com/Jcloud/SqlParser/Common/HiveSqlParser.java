@@ -38,6 +38,7 @@ public class HiveSqlParser {
 
     public SqlResult HiveInsertParser(String sql,String appkey){
         SqlResult result = new SqlResult();
+        sql = preFormat(sql);
         try{
             List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
             SQLStatement stmt = stmtList.get(0);
@@ -294,6 +295,26 @@ public class HiveSqlParser {
         long count = hiveSqlParser.sellerService.countByTbName(targetTb);
         if (count>0){
             result = true;
+        }
+        return result;
+    }
+
+    //将From语句在前的Hive语句转换为可以解析的语句
+    public String preFormat(String sql){
+        String result = sql.trim();
+        result = result.replace("from","FROM");
+        result = result.replace("insert","INSERT");
+        result = result.replace("where","WHERE");
+        int fromNum = result.indexOf("FROM");
+        int insertNum = result.indexOf("INSERT");
+        if (insertNum>fromNum){
+            String tempSql = result.substring(insertNum,result.length()-1);
+            String tempFrom = result.substring(0,insertNum);
+            int whereNum = tempSql.indexOf("WHERE");
+            StringBuffer stringBuffer = new StringBuffer(tempSql);
+            stringBuffer.insert(whereNum,tempFrom);
+            result = stringBuffer.toString();
+            return result;
         }
         return result;
     }
