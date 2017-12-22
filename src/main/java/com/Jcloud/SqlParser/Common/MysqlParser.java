@@ -46,6 +46,7 @@ public class MysqlParser {
             whereNew.setRight(whereRight);
             whereNew.setOperator(SQLBinaryOperator.BooleanAnd);
             queryBlock.setWhere(whereNew);
+            System.out.println(whereRight.toString());
         }else {
             queryBlock.setWhere(getWhereRight(seller_id));
         }
@@ -54,12 +55,13 @@ public class MysqlParser {
             queryBlock.setLimit(getLimit(200));
         }
         String resultStr = SQLUtils.toSQLString(queryBlock,dbType);
-//        System.out.println(resultStr);
         if (TranslateTo.equals("kylin")){
             resultStr =  MysqlToKylin(resultStr);
         }
+        String sqlresult = setBracket(resultStr);
+        System.out.println(sqlresult);
         result.setStatue(true);
-        result.setValue(resultStr);
+        result.setValue(sqlresult);
         return result;
     }
 
@@ -114,6 +116,21 @@ public class MysqlParser {
         }
         String result = SQLUtils.format(sql,JdbcConstants.MYSQL);
         return result;
+    }
+
+    public String setBracket(String sql){
+        int start = sql.lastIndexOf("WHERE")+5;
+        int end = sql.lastIndexOf("AND");
+        String subStr = sql.substring(start,end).trim();
+        char startChar = subStr.charAt(0);
+        char endChar = subStr.charAt(subStr.length()-1);
+        StringBuffer stringBuffer = new StringBuffer(sql);
+        if (!(startChar=='('&&endChar==')')){
+            stringBuffer.insert(end-1,')');
+            stringBuffer.insert(start+1,'(');
+        }
+        return stringBuffer.toString();
+
     }
 
 
