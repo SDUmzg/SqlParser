@@ -308,7 +308,7 @@ public class HiveSqlParser {
         int fromNum = result.indexOf("FROM");
         int insertNum = result.indexOf("INSERT");
         if (insertNum>fromNum){
-            String tempSql = result.substring(insertNum,result.length()-1);
+            String tempSql = result.substring(insertNum,result.length());
             String tempFrom = result.substring(0,insertNum);
             int whereNum = tempSql.indexOf("WHERE");
             StringBuffer stringBuffer = new StringBuffer(tempSql);

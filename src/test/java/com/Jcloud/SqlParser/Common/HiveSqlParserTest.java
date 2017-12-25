@@ -29,6 +29,8 @@ public class HiveSqlParserTest {
 
     @Autowired
     private SellerService sellerService;
+    @Autowired
+    private HiveSqlParser hiveSqlParser;
     @Test
     public void odpsInsertParser() throws Exception {
         HiveSqlParserSimple hiveSqlParserSimple = new HiveSqlParserSimple();
@@ -78,27 +80,10 @@ public class HiveSqlParserTest {
     public void temp1Test()throws Exception{
 //        HiveSqlParser hiveSqlParser = new HiveSqlParser();
 //        hiveSqlParser.HiveInsertParser(sql8,"appkey132456456");
-        System.err.println(preFormat(sql8));
+        System.err.println(hiveSqlParser.preFormat(sql8));
     }
 
-    public String preFormat(String sql){
-        String result = sql.trim();
-        result = result.replace("from","FROM");
-        result = result.replace("insert","INSERT");
-        result = result.replace("where","WHERE");
-        int fromNum = result.indexOf("FROM");
-        int insertNum = result.indexOf("INSERT");
-        if (insertNum>fromNum){
-            String tempSql = result.substring(insertNum,result.length()-1);
-            String tempFrom = result.substring(0,insertNum);
-            int whereNum = tempSql.indexOf("WHERE");
-            StringBuffer stringBuffer = new StringBuffer(tempSql);
-            stringBuffer.insert(whereNum,tempFrom);
-            result = stringBuffer.toString();
-            return result;
-        }
-        return result;
-    }
+
 
     @Test
     public void temp2Test()throws Exception{

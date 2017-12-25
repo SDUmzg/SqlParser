@@ -1,0 +1,75 @@
+id  : 1   success
+INSERT OVERWRITE TABLE pri_result.tdy001 PARTITION (dt='${date_ymd}')
+SELECT name, age
+WHERE dt = '${date_ymd}'
+
+id   : 9   success
+
+INSERT OVERWRITE TABLE pri_result.tdy001 PARTITION (dt='${date_ymd}')
+SELECT name, age
+FROM pri_upload.tdy001
+WHERE dt = '${date_ymd}'
+
+
+id : 10   success
+
+INSERT OVERWRITE TABLE pri_result.tdy002 PARTITION (dt='${date_ymd}')
+SELECT name, age
+FROM pri_upload.tdy002
+WHERE dt = '${date_ymd}'
+
+
+id : 49
+
+INSERT OVERWRITE TABLE pri_upload.test PARTITION (dt='${date_ymd}')
+SELECT shop_id, seller_id
+FROM (
+	SELECT DWS_ITM_ATTENTION_D.*
+	FROM sys.jddp_isv_seller
+	JOIN dws.DWS_ITM_ATTENTION_D
+	ON jddp_isv_seller.seller_id = DWS_ITM_ATTENTION_D.seller_id
+		AND jddp_isv_seller.appkey = 'appkey123456'
+		AND jddp_isv_seller.enable_flag = '1'
+) DWS_ITM_ATTENTION_D
+WHERE dt = '${date_ymd-1}'
+
+from
+    (from
+        sys.jddp_isv_seller
+     join
+        dws.dws_itm_attention_d
+     on
+        (  jddp_isv_seller.seller_id = dws_itm_attention_d.seller_id
+        and jddp_isv_seller.appkey = 'ed6879c35879e0e1c2ae9ee63ed9fc62'
+        and jddp_isv_seller.enable_flag = '1')
+      select dws_itm_attention_d.*) dws_itm_attention_d
+insert overwrite table pri_upload.test partition(dt='${date_ymd}')
+select shop_id,seller_id
+where dt = '${date_ymd-1}'
+
+54
+INSERT OVERWRITE TABLE pri_result.mystock PARTITION (dt='${date_ymd}')
+SELECT THE_DT, seller_id, shop_id, auction_stock
+FROM (
+	SELECT DWS_SELLER_SHOP_STOCK_D.*
+	FROM sys.jddp_isv_seller
+	JOIN dws.DWS_SELLER_SHOP_STOCK_D
+	ON jddp_isv_seller.seller_id = DWS_SELLER_SHOP_STOCK_D.seller_id
+		AND jddp_isv_seller.appkey = 'appkey123456'
+		AND jddp_isv_seller.enable_flag = '1'
+) DWS_SELLER_SHOP_STOCK_D
+WHERE dt = '${date_ymd-1}'
+
+from
+    (from
+        sys.jddp_isv_seller
+    join
+        dws.dws_seller_shop_stock_d
+    on (
+        jddp_isv_seller.seller_id = dws_seller_shop_stock_d.seller_id
+        and jddp_isv_seller.appkey = 'ed6879c35879e0e1c2ae9ee63ed9fc62'
+        and jddp_isv_seller.enable_flag = '1')
+    select dws_seller_shop_stock_d.*) dws_seller_shop_stock_d
+insert overwrite table pri_result.mystock partition(dt = '${date_ymd}')
+select the_dt,seller_id,shop_id,auction_stock where dt = '${date_ymd-1}'
+
