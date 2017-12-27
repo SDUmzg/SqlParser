@@ -71,5 +71,6 @@ from
         and jddp_isv_seller.enable_flag = '1')
     select dws_seller_shop_stock_d.*) dws_seller_shop_stock_d
 insert overwrite table pri_result.mystock partition(dt = '${date_ymd}')
-select the_dt,seller_id,shop_id,auction_stock where dt = '${date_ymd-1}'
+select the_dt,seller_id,shop_id,auction_stock
+where dt = '${date_ymd-1}'
 
