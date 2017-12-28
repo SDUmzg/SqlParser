@@ -29,39 +29,29 @@ public class HiveSqlParserSimpleTest {
 
     @Test
     public void testPreFormat(){
-        preFormat2(sql2);
-    }
-
-    @Test
-    public void testHqlToSql(){
-
-    }
-
-    @Test
-    public void test1(){
-        SQLStatementParser sqlStatementParser = SQLParserUtils.createSQLStatementParser(sql2, JdbcConstants.HSQL);
-        List<SQLStatement> sqlStatementList=sqlStatementParser.parseStatementList();
-        System.out.println("0");
-    }
-
-    @Test
-    public void test2(){
+        System.out.println(preFormat2(sql2));
     }
 
     public String preFormat2(String sql){
         String result=sql.trim();
-        result = result.replace("from","FROM");
-        result = result.replace("insert","INSERT");
-        result = result.replace("select","SELECT");
-        result = result.replace("where","WHERE");
-        result = result.replace("join","JOIN");
-        result = result.replace("on","ON");
+        result = result.replaceAll("\\bfrom\\b","FROM");
+        result = result.replaceAll("\\binsert\\b","INSERT");
+        result = result.replaceAll("\\bselect\\b","SELECT");
+        result = result.replaceAll("\\bwhere\\b","WHERE");
+        result = result.replaceAll("\\bjoin\\b","JOIN");
+        result = result.replaceAll("\\bon\\b","ON");
         int fromNum = result.indexOf("FROM");
         int insertNum = result.indexOf("INSERT");
         int selectNum = result.lastIndexOf("SELECT");
         int whereNum = result.lastIndexOf("WHERE");
         int joinNum = result.lastIndexOf("JOIN");
         int onNum = result.lastIndexOf("ON");
+        boolean haveJoin = true;
+        if (joinNum!=-1&&result.substring(fromNum,joinNum).indexOf("FROM")!=-1){
+            haveJoin = false ;
+            joinNum = -1;
+            onNum = -1;
+        }
         List<Map<String,Object>> tokenList = new ArrayList<>();
         tokenList.add(getSqlTokenList(SqlToken.FROM,fromNum));
         tokenList.add(getSqlTokenList(SqlToken.INSERT,insertNum));
@@ -70,22 +60,90 @@ public class HiveSqlParserSimpleTest {
         tokenList.add(getSqlTokenList(SqlToken.JOIN,joinNum));
         tokenList.add(getSqlTokenList(SqlToken.ON,onNum));
 
-        int tokenListSize = tokenList.size();
-        for (int i = 0;i<tokenListSize;i++){
-            Map<String,Object> tokenMap = tokenList.get(i);
-            SqlToken token = (SqlToken) tokenMap.get("token");
-            int value = (int) tokenMap.get("value");
-            for (int j = i+1;j<tokenListSize;j++){
-                Map<String,Object> tokenMapTemp = tokenList.get(j);
-                SqlToken tokenTemp = (SqlToken) tokenMap.get("token");
-                int valueTemp = (int) tokenMap.get("value");
+        sortTokenList(tokenList);
+        String insrtStr = "";
+        String selectStr="";
+        String fromStr = "";
+        String whereStr = "";
+        String joinStr = "";
+        String onStr = "";
 
+
+        int tokenListSize = tokenList.size();
+        for (int i =0 ;i<tokenListSize;i++){
+            Map<String,Object> tokenMapStart = tokenList.get(i);
+            SqlToken tokenStart = (SqlToken) tokenMapStart.get("token");
+            int valueStart = (int) tokenMapStart.get("value");
+            if (valueStart==-1){
+                continue;
+            }
+            int valueEnd = result.length();
+            if (i!=tokenListSize-1){
+                Map<String,Object> tokenMapEnd = tokenList.get(i+1);
+                valueEnd = (int) tokenMapEnd.get("value");
+
+            }
+            switch (tokenStart){
+                case INSERT:
+                    insrtStr = result.substring(valueStart,valueEnd);
+                    break;
+                case SELECT:
+                    selectStr = result.substring(valueStart,valueEnd);
+                    break;
+                case FROM:
+                    fromStr = result.substring(valueStart,valueEnd);
+                    String fromStrExFrom = fromStr.trim().substring(4);
+                    if (fromStrExFrom.trim().substring(0,1).equals("(")){
+                        int innerStart = fromStrExFrom.indexOf("(")+1;
+                        int innerEnd = fromStrExFrom.lastIndexOf(")");
+                        String fromSql = fromStrExFrom.substring(innerStart,innerEnd);
+                        System.err.println(fromSql);
+                        fromStr ="FROM  "+fromStrExFrom.substring(0,innerStart)+" "+preFormat2(fromSql)+" "+fromStrExFrom.substring(innerEnd);
+                        System.err.println(fromStr);
+                    }
+                    break;
+                case WHERE:
+                    whereStr = result.substring(valueStart,valueEnd);
+                    break;
+                case JOIN:
+                    if (haveJoin){
+                        joinStr  = result.substring(valueStart,valueEnd);
+                    }
+                    break;
+                case ON:
+                    if (haveJoin){
+                        onStr = result.substring(valueStart,valueEnd);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        String resultNew = insrtStr + " " + selectStr + " " + fromStr + " "+joinStr+" "+onStr+" "+whereStr;
+        return resultNew;
+    }
+
+    public void sortTokenList(List<Map<String,Object>> tokenList){
+        int tokenListSize = tokenList.size();
+
+        for (int i =0 ; i<tokenListSize-1 ;i++){
+            int k = i;
+            Map<String,Object> tokenMap = tokenList.get(i);
+            int value = (int) tokenMap.get("value");
+            for (int j = k+1;j<tokenListSize;j++){
+                Map<String,Object> tokenMapInner = tokenList.get(j);
+                int valueInner = (int) tokenMapInner.get("value");
+                if (value>valueInner){
+                    k = j;
+                    value = valueInner;
+                }
+            }
+            if (k!=i){
+                tokenList.set(i,tokenList.get(k));
+                tokenList.set(k,tokenMap);
             }
         }
 
-
-
-        return result;
     }
 
     public Map<String,Object> getSqlTokenList(SqlToken sqlToken,int value){
@@ -115,7 +173,26 @@ public class HiveSqlParserSimpleTest {
             "where dt = '${date_ymd-1}'";
     public static final String sql2 =
             "FROM\n" +
-            "    (FROM\n" +
+                    "    (FROM\n" +
+                    "        sys.jddp_isv_seller\n" +
+                    "    join\n" +
+                    "        dws.dws_seller_shop_stock_d\n" +
+                    "    on (\n" +
+                    "        jddp_isv_seller.seller_id = dws_seller_shop_stock_d.seller_id\n" +
+                    "        and jddp_isv_seller.appkey = 'ed6879c35879e0e1c2ae9ee63ed9fc62'\n" +
+                    "        and jddp_isv_seller.enable_flag = '1')\n" +
+                    "    select dws_seller_shop_stock_d.*) dws_seller_shop_stock_d\n" +
+                    "insert overwrite table pri_result.mystock partition(dt = '${date_ymd}')\n" +
+                    "select the_dt,seller_id,shop_id,auction_stock\n" +
+                    "where dt = '${date_ymd-1}'";
+
+    public static final String sql3 =
+            "FROM dws_seller_shop_stock_d\n" +
+                    "insert overwrite table pri_result.mystock partition(dt = '${date_ymd}')\n" +
+                    "select the_dt,seller_id,shop_id,auction_stock\n" +
+                    "where dt = '${date_ymd-1}'";
+
+    public static final String sql4 = "    FROM\n" +
             "        sys.jddp_isv_seller\n" +
             "    join\n" +
             "        dws.dws_seller_shop_stock_d\n" +
@@ -123,10 +200,7 @@ public class HiveSqlParserSimpleTest {
             "        jddp_isv_seller.seller_id = dws_seller_shop_stock_d.seller_id\n" +
             "        and jddp_isv_seller.appkey = 'ed6879c35879e0e1c2ae9ee63ed9fc62'\n" +
             "        and jddp_isv_seller.enable_flag = '1')\n" +
-            "    select dws_seller_shop_stock_d.*) dws_seller_shop_stock_d\n" +
-            "insert overwrite table pri_result.mystock partition(dt = '${date_ymd}')\n" +
-            "select the_dt,seller_id,shop_id,auction_stock\n" +
-            "where dt = '${date_ymd-1}'";
+            "    select dws_seller_shop_stock_d.*\n" ;
 
     public static final String hql = "from Student where studentName like :stuName and birthDay between :dat1 and :dat2";
 

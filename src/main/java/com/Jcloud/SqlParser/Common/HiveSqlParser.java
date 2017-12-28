@@ -1,6 +1,7 @@
 package com.Jcloud.SqlParser.Common;
 
 import com.Jcloud.SqlParser.Model.SqlResult;
+import com.Jcloud.SqlParser.Model.SqlToken;
 import com.Jcloud.SqlParser.Service.SellerService;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.xml.bind.ValidationEventLocator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by mzg on 2017/12/19.
@@ -316,6 +320,126 @@ public class HiveSqlParser {
             result = stringBuffer.toString();
             return result;
         }
+        return result;
+    }
+
+
+    public String preFormatComplex(String sql){
+        String result=sql.trim();
+        result = result.replaceAll("\\bfrom\\b","FROM");
+        result = result.replaceAll("\\binsert\\b","INSERT");
+        result = result.replaceAll("\\bselect\\b","SELECT");
+        result = result.replaceAll("\\bwhere\\b","WHERE");
+        result = result.replaceAll("\\bjoin\\b","JOIN");
+        result = result.replaceAll("\\bon\\b","ON");
+        int fromNum = result.indexOf("FROM");
+        int insertNum = result.indexOf("INSERT");
+        int selectNum = result.lastIndexOf("SELECT");
+        int whereNum = result.lastIndexOf("WHERE");
+        int joinNum = result.lastIndexOf("JOIN");
+        int onNum = result.lastIndexOf("ON");
+        boolean haveJoin = true;
+        if (joinNum!=-1&&result.substring(fromNum,joinNum).indexOf("FROM")!=-1){
+            haveJoin = false ;
+            joinNum = -1;
+            onNum = -1;
+        }
+        List<Map<String,Object>> tokenList = new ArrayList<>();
+        tokenList.add(getSqlTokenList(SqlToken.FROM,fromNum));
+        tokenList.add(getSqlTokenList(SqlToken.INSERT,insertNum));
+        tokenList.add(getSqlTokenList(SqlToken.SELECT,selectNum));
+        tokenList.add(getSqlTokenList(SqlToken.WHERE,whereNum));
+        tokenList.add(getSqlTokenList(SqlToken.JOIN,joinNum));
+        tokenList.add(getSqlTokenList(SqlToken.ON,onNum));
+
+        sortTokenList(tokenList);
+        String insrtStr = "";
+        String selectStr="";
+        String fromStr = "";
+        String whereStr = "";
+        String joinStr = "";
+        String onStr = "";
+
+
+        int tokenListSize = tokenList.size();
+        for (int i =0 ;i<tokenListSize;i++){
+            Map<String,Object> tokenMapStart = tokenList.get(i);
+            SqlToken tokenStart = (SqlToken) tokenMapStart.get("token");
+            int valueStart = (int) tokenMapStart.get("value");
+            if (valueStart==-1){
+                continue;
+            }
+            int valueEnd = result.length();
+            if (i!=tokenListSize-1){
+                Map<String,Object> tokenMapEnd = tokenList.get(i+1);
+                valueEnd = (int) tokenMapEnd.get("value");
+
+            }
+            switch (tokenStart){
+                case INSERT:
+                    insrtStr = result.substring(valueStart,valueEnd);
+                    break;
+                case SELECT:
+                    selectStr = result.substring(valueStart,valueEnd);
+                    break;
+                case FROM:
+                    fromStr = result.substring(valueStart,valueEnd);
+                    String fromStrExFrom = fromStr.trim().substring(4);
+                    if (fromStrExFrom.trim().substring(0,1).equals("(")){
+                        int innerStart = fromStrExFrom.indexOf("(")+1;
+                        int innerEnd = fromStrExFrom.lastIndexOf(")");
+                        String fromSql = fromStrExFrom.substring(innerStart,innerEnd);
+                        fromStr ="FROM  "+fromStrExFrom.substring(0,innerStart)+" "+preFormatComplex(fromSql)+" "+fromStrExFrom.substring(innerEnd);
+                    }
+                    break;
+                case WHERE:
+                    whereStr = result.substring(valueStart,valueEnd);
+                    break;
+                case JOIN:
+                    if (haveJoin){
+                        joinStr  = result.substring(valueStart,valueEnd);
+                    }
+                    break;
+                case ON:
+                    if (haveJoin){
+                        onStr = result.substring(valueStart,valueEnd);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        String resultNew = insrtStr + " " + selectStr + " " + fromStr + " "+joinStr+" "+onStr+" "+whereStr;
+        return resultNew;
+    }
+
+    public void sortTokenList(List<Map<String,Object>> tokenList){
+        int tokenListSize = tokenList.size();
+
+        for (int i =0 ; i<tokenListSize-1 ;i++){
+            int k = i;
+            Map<String,Object> tokenMap = tokenList.get(i);
+            int value = (int) tokenMap.get("value");
+            for (int j = k+1;j<tokenListSize;j++){
+                Map<String,Object> tokenMapInner = tokenList.get(j);
+                int valueInner = (int) tokenMapInner.get("value");
+                if (value>valueInner){
+                    k = j;
+                    value = valueInner;
+                }
+            }
+            if (k!=i){
+                tokenList.set(i,tokenList.get(k));
+                tokenList.set(k,tokenMap);
+            }
+        }
+
+    }
+
+    public Map<String,Object> getSqlTokenList(SqlToken sqlToken,int value){
+        Map<String,Object> result = new HashMap<>();
+        result.put("token",sqlToken);
+        result.put("value",value);
         return result;
     }
 }
