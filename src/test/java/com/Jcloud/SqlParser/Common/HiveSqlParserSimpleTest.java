@@ -1,11 +1,15 @@
 package com.Jcloud.SqlParser.Common;
 
+import com.Jcloud.SqlParser.Model.SqlToken;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.util.JdbcConstants;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,11 +62,37 @@ public class HiveSqlParserSimpleTest {
         int whereNum = result.lastIndexOf("WHERE");
         int joinNum = result.lastIndexOf("JOIN");
         int onNum = result.lastIndexOf("ON");
+        List<Map<String,Object>> tokenList = new ArrayList<>();
+        tokenList.add(getSqlTokenList(SqlToken.FROM,fromNum));
+        tokenList.add(getSqlTokenList(SqlToken.INSERT,insertNum));
+        tokenList.add(getSqlTokenList(SqlToken.SELECT,selectNum));
+        tokenList.add(getSqlTokenList(SqlToken.WHERE,whereNum));
+        tokenList.add(getSqlTokenList(SqlToken.JOIN,joinNum));
+        tokenList.add(getSqlTokenList(SqlToken.ON,onNum));
+
+        int tokenListSize = tokenList.size();
+        for (int i = 0;i<tokenListSize;i++){
+            Map<String,Object> tokenMap = tokenList.get(i);
+            SqlToken token = (SqlToken) tokenMap.get("token");
+            int value = (int) tokenMap.get("value");
+            for (int j = i+1;j<tokenListSize;j++){
+                Map<String,Object> tokenMapTemp = tokenList.get(j);
+                SqlToken tokenTemp = (SqlToken) tokenMap.get("token");
+                int valueTemp = (int) tokenMap.get("value");
+
+            }
+        }
+
+
+
         return result;
     }
 
-    public List<Map<String,Integer>> getHiveItemList(){
-        return null;
+    public Map<String,Object> getSqlTokenList(SqlToken sqlToken,int value){
+        Map<String,Object> result = new HashMap<>();
+        result.put("token",sqlToken);
+        result.put("value",value);
+        return result;
     }
 
 
