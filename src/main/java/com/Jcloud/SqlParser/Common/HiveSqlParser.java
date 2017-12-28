@@ -43,6 +43,10 @@ public class HiveSqlParser {
     public SqlResult HiveInsertParser(String sql,String appkey){
         SqlResult result = new SqlResult();
         sql = preFormat(sql);
+        if (!CheckInvaild.evaluate(sql,dbType)){
+            result.setStatue(false);
+            result.setValue("sql injection");
+        }
         try{
             List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
             SQLStatement stmt = stmtList.get(0);

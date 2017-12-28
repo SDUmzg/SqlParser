@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -29,7 +31,21 @@ public class HiveSqlParserSimpleTest {
 
     @Test
     public void testPreFormat(){
-        System.out.println(preFormat2(sql2));
+        String a = preFormat2(hql3);
+        String b = SQLUtils.formatOdps(a);
+        System.out.println(b);
+    }
+
+    @Test
+    public void test2(){
+        String pattern = ".*?appkey.*?'(.*?)'.*?";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(sql1);
+        if (m.find()){
+            String c = m.group(1);
+            System.out.println(c);
+
+        }
     }
 
     public String preFormat2(String sql){
@@ -97,9 +113,9 @@ public class HiveSqlParserSimpleTest {
                         int innerStart = fromStrExFrom.indexOf("(")+1;
                         int innerEnd = fromStrExFrom.lastIndexOf(")");
                         String fromSql = fromStrExFrom.substring(innerStart,innerEnd);
-                        System.err.println(fromSql);
+//                        System.err.println(fromSql);
                         fromStr ="FROM  "+fromStrExFrom.substring(0,innerStart)+" "+preFormat2(fromSql)+" "+fromStrExFrom.substring(innerEnd);
-                        System.err.println(fromStr);
+//                        System.err.println(fromStr);
                     }
                     break;
                 case WHERE:
@@ -207,4 +223,7 @@ public class HiveSqlParserSimpleTest {
     public static final String hql1 = "FROM pri_upload.tdy001 INSERT into TABLE pri_result.tdy001 PARTITION(dt = '${date_ymd}') SELECT name,age WHERE dt = '${date_ymd}'";
 
 
+    public static final String hql2="from  (from sys.jddp_isv_seller join dws.dws_itm_asso_d on (jddp_isv_seller.seller_id = dws_itm_asso_d.seller_id and jddp_isv_seller.appkey = '6acbc14f3ce443ffcd86502ae9df6ac9' and jddp_isv_seller.enable_flag = '1') select dws_itm_asso_d.*) dws_itm_asso_d insert overwrite table pri_temp.mytmp partition(dt = '${date_ymd}') select sku_id,shop_id where dt = '${date_ymd}'";
+
+    public static final String hql3 ="from  (from sys.jddp_isv_seller join dws.dws_itm_attention_d on (jddp_isv_seller.seller_id = dws_itm_attention_d.seller_id and jddp_isv_seller.appkey = 'ed6879c35879e0e1c2ae9ee63ed9fc62' and jddp_isv_seller.enable_flag = '1') select dws_itm_attention_d.*) dws_itm_attention_d insert overwrite table pri_upload.test partition(dt='${date_ymd}')  select shop_id,seller_id where dt = '${date_ymd-1}'";
 }

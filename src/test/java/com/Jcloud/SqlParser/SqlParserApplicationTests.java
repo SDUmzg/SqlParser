@@ -17,6 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -56,9 +58,20 @@ public class SqlParserApplicationTests {
                 }
                 sql = hiveSqlParser.preFormat(sql);
                 targetSql = hiveSqlParser.preFormat(targetSql);
+                String appkey = "appkey12345678";
+                if (targetSql.indexOf("appkey")!=-1){
+                    String pattern = ".*?appkey.*?'(.*?)'.*?";
+                    Pattern r = Pattern.compile(pattern);
+                    Matcher m = r.matcher(targetSql);
+                    if (m.find()){
+                        String c = m.group(1);
+                        appkey = c;
+                    }
+
+                }
 
                 //本地解析一遍的SQL
-                SqlResult afterParser = hiveSqlParser.HiveInsertParser(sql,"appkey12345678");
+                SqlResult afterParser = hiveSqlParser.HiveInsertParser(sql,appkey);
                 String sqlAfterTemp = afterParser.getValue().trim();
                 String sqlAfter = SQLUtils.format(sqlAfterTemp, JdbcConstants.ODPS).trim();
 

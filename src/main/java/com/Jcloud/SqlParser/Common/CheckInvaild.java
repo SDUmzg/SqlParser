@@ -7,7 +7,7 @@ import com.alibaba.druid.wall.spi.SQLServerWallProvider;
 
 public class CheckInvaild 
 { 
- 	public Boolean evaluate(String sql, String dbType) 
+ 	public static Boolean evaluate(String sql, String dbType)
  	{ 
  		if (sql == null || dbType == null) 
  		{
