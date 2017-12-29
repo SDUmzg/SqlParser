@@ -57,10 +57,11 @@ public class HiveSqlParser {
 //            System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
             result.setStatue(true);
             result.setValue(SQLUtils.toSQLString(odpsInsert,dbType));
-            if (!CheckInvaild.evaluate(SQLUtils.toSQLString(odpsInsert,dbType),dbType)){
-                result.setStatue(false);
-                result.setValue("sql injection");
-            }
+            //检测sql注入的方法
+//            if (!CheckInvaild.evaluate(SQLUtils.toSQLString(odpsInsert,dbType),dbType)){
+//                result.setStatue(false);
+//                result.setValue("sql injection");
+//            }
         }catch (Exception e){
             result.setStatue(false);
             result.setValue(e.getMessage());
@@ -319,8 +320,11 @@ public class HiveSqlParser {
             String tempSql = result.substring(insertNum,result.length());
             String tempFrom = result.substring(0,insertNum);
             int whereNum = tempSql.indexOf("WHERE");
+            if (whereNum==-1){
+                whereNum = tempSql.length()-1;
+            }
             StringBuffer stringBuffer = new StringBuffer(tempSql);
-            stringBuffer.insert(whereNum,tempFrom);
+            stringBuffer.insert(whereNum,"  "+tempFrom);
             result = stringBuffer.toString();
             return result;
         }

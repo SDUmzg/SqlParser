@@ -80,7 +80,7 @@ public class HiveSqlParserTest {
     public void temp1Test()throws Exception{
 //        HiveSqlParser hiveSqlParser = new HiveSqlParser();
 //        hiveSqlParser.HiveInsertParser(sql8,"appkey132456456");
-        System.err.println(hiveSqlParser.preFormat(sql8));
+        System.err.println(hiveSqlParser.preFormat(sql9));
     }
 
 
@@ -534,6 +534,10 @@ public class HiveSqlParserTest {
 
     public static final String sql8 ="from pri_upload.tdy001 insert overwrite table pri_result.tdy001  select name,age where dt = '${date_ymd}'";
 
+    public static final String sql9 = "FROM (select seller_id,buyer_id,order_id from dws.dws_shop_shop_order_d where dt='20140608') pvs \n" +
+            "INSERT OVERWRITE TABLE pri_result.test1 PARTITION(dt='${date_ymd}')\n" +
+            "       SELECT pvs.seller_id,pvs.buyer_id,\n" +
+            "       pvs.order_id;";
 
 
 }

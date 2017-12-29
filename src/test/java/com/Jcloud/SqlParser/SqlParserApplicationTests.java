@@ -57,7 +57,7 @@ public class SqlParserApplicationTests {
                     continue;
                 }
                 sql = hiveSqlParser.preFormat(sql);
-                targetSql = hiveSqlParser.preFormat(targetSql);
+//                targetSql = hiveSqlParser.preFormatComplex(targetSql);
                 String appkey = "appkey12345678";
                 if (targetSql.indexOf("appkey")!=-1){
                     String pattern = ".*?appkey.*?'(.*?)'.*?";
@@ -76,15 +76,25 @@ public class SqlParserApplicationTests {
                 String sqlAfter = SQLUtils.format(sqlAfterTemp, JdbcConstants.ODPS).trim();
 
                 //数据库中的数据格式化
-                String targetSqlAfter = SQLUtils.format(targetSql, JdbcConstants.ODPS).trim();
+//                String targetSqlAfter = SQLUtils.format(targetSql, JdbcConstants.ODPS).trim();
 
-                if (!sqlAfter.equals(targetSqlAfter)){
-                    System.err.println("验证不同 : "+id);
-                    TxtFileWriter.method1("E:\\IdeaProjects\\SqlParser\\src\\test\\java\\com\\Jcloud\\SqlParser\\Txt\\fail.txt",
+                int [] sqlToken = getTokenNum(sqlAfter);
+                int [] sqlTokenTatget = getTokenNum(targetSql);
+                boolean status = true;
+                for (int j =0;j<sqlToken.length;j++){
+                    if (sqlToken[j]!=sqlTokenTatget[j]){
+                        status = false;
+                    }
+                }
+
+
+                if (status){
+                    System.err.println("验证相同 : "+id);
+                    TxtFileWriter.method1("E:\\IdeaProjects\\SqlParser\\src\\test\\java\\com\\Jcloud\\SqlParser\\Txt\\success.txt",
                             id+"\r\n");
                 }else {
-                    System.err.println("验证通过 : "+id);
-                    TxtFileWriter.method1("E:\\IdeaProjects\\SqlParser\\src\\test\\java\\com\\Jcloud\\SqlParser\\Txt\\success.txt",
+                    System.err.println("验证不同 : "+id);
+                    TxtFileWriter.method1("E:\\IdeaProjects\\SqlParser\\src\\test\\java\\com\\Jcloud\\SqlParser\\Txt\\fail.txt",
                             id+"\r\n");
                 }
 
@@ -101,47 +111,64 @@ public class SqlParserApplicationTests {
     }
 
     @Test
-    public void testSimple(){
-        String sql =  "insert overwrite table pri_temp.mytmp partition(dt = '${date_ymd}')  select *    from pri_result.myresult where dt='${date_ymd}'";
-        String targetSql = "from  (from sys.jddp_isv_seller join dws.dws_itm_asso_d on (jddp_isv_seller.seller_id = dws_itm_asso_d.seller_id and jddp_isv_seller.appkey = '6acbc14f3ce443ffcd86502ae9df6ac9' and jddp_isv_seller.enable_flag = '1') select dws_itm_asso_d.*) dws_itm_asso_d insert overwrite table pri_temp.mytmp partition(dt = '${date_ymd}') select sku_id,shop_id where dt = '${date_ymd}'";
-        try{
-            sql = hiveSqlParser.preFormat(sql);
-            targetSql = hiveSqlParser.preFormat(targetSql);
-            String appkey = "appkey12345678";
-            if (targetSql.indexOf("appkey")!=-1){
-                String pattern = ".*?appkey.*?'(.*?)'.*?";
-                Pattern r = Pattern.compile(pattern);
-                Matcher m = r.matcher(targetSql);
-                if (m.find()){
-                    String c = m.group(1);
-                    appkey = c;
-                }
-            }
-            System.out.println(appkey);
-
-            //本地解析一遍的SQL
-            SqlResult afterParser = hiveSqlParser.HiveInsertParser(sql,appkey);
-            String sqlAfterTemp = afterParser.getValue().trim();
-            String sqlAfter = SQLUtils.format(sqlAfterTemp, JdbcConstants.ODPS).trim();
-
-            //数据库中的数据格式化
-            String targetSqlAfter = SQLUtils.format(targetSql, JdbcConstants.ODPS).trim();
-
-            System.out.println(sqlAfter);
-            System.out.println("-----------------------------------");
-            System.out.println(targetSqlAfter);
-
-
-            if (!sqlAfter.equals(targetSqlAfter)){
-                System.err.println("验证不同 : ");
-            }else {
-                System.err.println("验证通过 : ");
-            }
-
-        }catch (Exception e){
-            System.err.println("ERROR ");
+    public void testSameSql(){
+        int[] a=getTokenNum(sql);
+        int[] b=getTokenNum(sql);
+        if (a==b){
+            System.out.println("两个数组相等");
+        }
+        for (int i=0;i<a.length;i++){
+            System.err.println(i    + "  :  "+a[i]);
         }
     }
 
+
+    public int[] getTokenNum(String sql){
+        /**
+         * tokenNum[0]  ----    select
+         * tokenNum[1]  -----   from
+         * tokenNum[2]  -----   join
+         * tokenNum[3]  -----   on
+         * tokenNum[4]  -----    where
+         * tokenNum[5]  ------   insert
+         * tokenNum[6]  ------   appkey
+         * tokenNum[7]  ------   partition
+         */
+        int [] tokenNum = {0,0,0,0,0,0,0,0};
+        String [] tokenStr = {"select","from","join","on","where","insert","appkey","partition"};
+        for (int i=0;i<tokenNum.length;i++){
+            tokenNum[i] = appearNumber(sql,tokenStr[i]);
+        }
+        return tokenNum;
+    }
+
+    /**
+     * 获取指定字符串出现的次数
+     *
+     * @param srcText 源字符串
+     * @param findText 要查找的字符串
+     * @return
+     */
+    public static int appearNumber(String srcText, String findText) {
+        int count = 0;
+        Pattern p = Pattern.compile("\\b"+findText+"\\b",Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(srcText);
+        while (m.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    final String sql = "INSERT OVERWRITE TABLE pri_upload.test PARTITION (dt='${date_ymd}')\n" +
+            "SELECT shop_id, seller_id\n" +
+            "FROM (\n" +
+            "\tSELECT DWS_ITM_ATTENTION_D.*\n" +
+            "\tFROM sys.jddp_isv_seller\n" +
+            "\tJOIN dws.DWS_ITM_ATTENTION_D\n" +
+            "\tON on on onm on on on jddp_isv_seller.seller_id = DWS_ITM_ATTENTION_D.seller_id\n" +
+            "\t\tAND jddp_isv_seller.appkey = 'appkey123456'\n" +
+            "\t\tAND jddp_isv_seller.enable_flag = '1'\n" +
+            ") DWS_ITM_ATTENTION_D\n" +
+            "WHERE dt = '${date_ymd-1}'";
 
 }
