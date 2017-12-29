@@ -43,10 +43,6 @@ public class HiveSqlParser {
     public SqlResult HiveInsertParser(String sql,String appkey){
         SqlResult result = new SqlResult();
         sql = preFormat(sql);
-        if (!CheckInvaild.evaluate(sql,dbType)){
-            result.setStatue(false);
-            result.setValue("sql injection");
-        }
         try{
             List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
             SQLStatement stmt = stmtList.get(0);
@@ -58,9 +54,13 @@ public class HiveSqlParser {
             sqlSelect.setQuery(odpsSelectQueryBlock);
             odpsInsert.setQuery(sqlSelect);
             setHivePartitionn(odpsInsert);
-            System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
+//            System.out.println(SQLUtils.toSQLString(odpsInsert,dbType));
             result.setStatue(true);
             result.setValue(SQLUtils.toSQLString(odpsInsert,dbType));
+            if (!CheckInvaild.evaluate(SQLUtils.toSQLString(odpsInsert,dbType),dbType)){
+                result.setStatue(false);
+                result.setValue("sql injection");
+            }
         }catch (Exception e){
             result.setStatue(false);
             result.setValue(e.getMessage());

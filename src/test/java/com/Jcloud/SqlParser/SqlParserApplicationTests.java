@@ -100,5 +100,48 @@ public class SqlParserApplicationTests {
 //		System.err.println(hiveTestModelList.size());
     }
 
+    @Test
+    public void testSimple(){
+        String sql =  "insert overwrite table pri_temp.mytmp partition(dt = '${date_ymd}')  select *    from pri_result.myresult where dt='${date_ymd}'";
+        String targetSql = "from  (from sys.jddp_isv_seller join dws.dws_itm_asso_d on (jddp_isv_seller.seller_id = dws_itm_asso_d.seller_id and jddp_isv_seller.appkey = '6acbc14f3ce443ffcd86502ae9df6ac9' and jddp_isv_seller.enable_flag = '1') select dws_itm_asso_d.*) dws_itm_asso_d insert overwrite table pri_temp.mytmp partition(dt = '${date_ymd}') select sku_id,shop_id where dt = '${date_ymd}'";
+        try{
+            sql = hiveSqlParser.preFormat(sql);
+            targetSql = hiveSqlParser.preFormat(targetSql);
+            String appkey = "appkey12345678";
+            if (targetSql.indexOf("appkey")!=-1){
+                String pattern = ".*?appkey.*?'(.*?)'.*?";
+                Pattern r = Pattern.compile(pattern);
+                Matcher m = r.matcher(targetSql);
+                if (m.find()){
+                    String c = m.group(1);
+                    appkey = c;
+                }
+            }
+            System.out.println(appkey);
+
+            //本地解析一遍的SQL
+            SqlResult afterParser = hiveSqlParser.HiveInsertParser(sql,appkey);
+            String sqlAfterTemp = afterParser.getValue().trim();
+            String sqlAfter = SQLUtils.format(sqlAfterTemp, JdbcConstants.ODPS).trim();
+
+            //数据库中的数据格式化
+            String targetSqlAfter = SQLUtils.format(targetSql, JdbcConstants.ODPS).trim();
+
+            System.out.println(sqlAfter);
+            System.out.println("-----------------------------------");
+            System.out.println(targetSqlAfter);
+
+
+            if (!sqlAfter.equals(targetSqlAfter)){
+                System.err.println("验证不同 : ");
+            }else {
+                System.err.println("验证通过 : ");
+            }
+
+        }catch (Exception e){
+            System.err.println("ERROR ");
+        }
+    }
+
 
 }
